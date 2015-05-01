@@ -11,9 +11,13 @@ from neon.datasets.dataset import Dataset
 import cProfile
 
 MOVIE_DIR = "/home/coreyesj/flyvflydata/Aggression/Aggression"
-NUM_BINS = 5
-movie_nos = [1, 2, 3, 4, 5, 6]
 
+# Feature constants
+NUM_BINS = 5
+NUM_FRAMES = 3
+FEATURE_LENGTH = 2 * 17 * NUM_FRAMES * NUM_BINS
+
+movie_nos = [1, 2, 3, 4, 5, 6]
 logger = logging.getLogger(__name__)
 
 def read_tracking_data(movie_no):
@@ -46,19 +50,19 @@ def discretize(trk_data, min_range, max_range, num_bins=NUM_BINS):
 
     # Get bin number that each feature falls in
     #disc_trk_data = np.zeros(trk_data.shape)
-    disc_trk_data = np.zeros((2, num_frames*num_bins, num_features))
+    disc_trk_data = np.zeros((2, num_frames, num_features))
     binary_offsets = np.arange(0, num_bins*num_frames, num_bins)
 
     for j in xrange(num_features):
         # bin_nos will range from 0 to num_bins and be 0 or num_bins if outside range
         for fly_no in range(2):
             bin_nos = np.searchsorted(feature_bins[j,:], trk_data[fly_no,:, j])
-            binary_index = bin_nos + binary_offsets
-            binary_index = binary_index[~np.isnan(binary_index)]
-            disc_trk_data[fly_no, binary_index[:-1], j] = 1
+            #binary_index = bin_nos + binary_offsets
+            #binary_index = binary_index[~np.isnan(binary_index)]
+            disc_trk_data[fly_no, :, j] = bin_nos
 
     # Keep nan's in trk_data as nans in disc
-    #disc_trk_data[np.isnan(trk_data)] = np.nan
+    disc_trk_data[np.isnan(trk_data)] = np.nan
 
     return disc_trk_data
 
@@ -84,17 +88,16 @@ def transform(trk_data, labels, window_length=3, stride=1):
     num_frames, num_features = trk_data.shape[1:3]
     action_no = 0
     fly_no = 1
-
-    X = np.zeros((num_frames-window_length+1, 2*num_features*window_length*NUM_BINS))
+    feature_length = 2 * num_features*window_length;
+    X = np.zeros((num_frames-window_length+1, feature_length))
     Y = np.zeros((X.shape[0], 1))
-
+    relative_bin_offset = np.arange(0, feature_length*NUM_BINS, NUM_BINS)
     # Get window of tracking data over time
     for i in xrange(0, num_frames - window_length):
-        window = trk_data[:, i*NUM_BINS:(i+window_length)*NUM_BINS, :]
-        if window.size != window_length * NUM_BINS:
-            continue
+        window = trk_data[:, i:(i+window_length), :]
         X[i, :] = np.reshape(window, (1, window.size))
-
+        # Change bin binary data to relative position of 1
+        X[i, :] += relative_bin_offset
     action_labels = labels[fly_no, action_no][:, 0:2]
     for i in xrange(0, len(action_labels)):
         start, stop = action_labels[i, :]
@@ -154,6 +157,18 @@ class Fly(Dataset):
         self.targets['test'] = np.vstack([flydata[i][1] for i in test_nos])
 
         self.format()
+
+    def get_mini_batch(self, batch_idx):
+        cur_batch = self.inputs['train'][batch_idx]
+        batch_size = cur_batch.shape[1]
+        # cur_batch = cur_batch[~np.isnan(cur_batch)]
+        # print cur_batch.shape
+        input_batch = np.zeros((FEATURE_LENGTH, batch_size))
+        for col in range(batch_size):
+            bin_idx = cur_batch[:, col].asnumpyarray().astype(int)
+            bin_idx = [~np.isnan(bin_idx)]
+            input_batch[bin_idx, :] = 1
+        return self.backend.array(input_batch), self.targets['train'][batch_idx]
 
     def get_batch(self, data, batch):
         """
