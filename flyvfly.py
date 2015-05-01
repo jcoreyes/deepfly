@@ -145,12 +145,13 @@ class Fly(Dataset):
         self.targets['train'] = np.vstack([flydata[i][1] for i in train_nos])
         print "data shape"
         print self.inputs['train'].shape
+        print self.inputs['train'].size
         print self.targets['train'].shape
         #self.inputs['validation'] = np.vstack([flydata[i][0] for i in validation_nos])
         #self.targets['validation'] = np.vstack([flydata[i][1] for i in validation_nos])  
 
-        #self.inputs['test'] = np.vstack([flydata[i][0] for i in test_nos])
-        #self.targets['test'] = np.vstack([flydata[i][1] for i in test_nos])
+        self.inputs['test'] = np.vstack([flydata[i][0] for i in test_nos])
+        self.targets['test'] = np.vstack([flydata[i][1] for i in test_nos])
 
         self.format()
 
