@@ -109,6 +109,16 @@ def transform(trk_data, labels, window_length=3, stride=1):
 
     return X, Y
 
+def filter(X, Y):
+    """Filter out percentage of data"""
+    idx1 = np.where(Y == 0)
+    idx2 = np.where(Y == 1)
+    no_action = int(0.2 * idx.shape[0])
+    idx1 = idx1[0:no_action]
+    num_points = len(idx1) + len(idx2)
+    newX = np.zeros(())
+
+
 def load_data():
     min_range, max_range = find_ranges()
     data = []
@@ -224,19 +234,19 @@ class FlyPredict(Dataset):
             return
 
         flydata = load_data()
-        #self.inputs['train'] = np.vstack([flydata[i][0] for i in train_nos])
-        #self.targets['train'] = np.vstack([flydata[i][1] for i in train_nos])
+        self.inputs['train'] = np.vstack([flydata[i][0] for i in train_nos])
+        self.targets['train'] = np.vstack([flydata[i][1] for i in train_nos])
         #print "Training size: ", self.inputs['train'].shape
         #self.inputs['validation'] = np.vstack([flydata[i][0] for i in validation_nos])
         #self.targets['validation'] = np.vstack([flydata[i][1] for i in validation_nos])  
-        self.inputs['test'] = np.vstack([flydata[i][0][:15000,:] for i in test_nos])
-        self.targets['test'] = np.vstack([flydata[i][1][:15000,:] for i in test_nos])
+        self.inputs['test'] = np.vstack([flydata[i][0] for i in test_nos])
+        self.targets['test'] = np.vstack([flydata[i][1] for i in test_nos])
         print "Test Size: ", self.inputs['test'].shape
         self.test = np.vstack([flydata[i][1][:15000,:] for i in test_nos])
         self.format()
 
     def get_mini_batch(self, batch_idx):
-        cur_batch = self.inputs['test'][batch_idx].asnumpyarray()
+        cur_batch = self.inputs['train'][batch_idx].asnumpyarray()
         #print cur_batch
         batch_size = cur_batch.shape[1]
         # cur_batch = cur_batch[~np.isnan(cur_batch)]
@@ -247,7 +257,7 @@ class FlyPredict(Dataset):
             # for row in range(cur_batch.shape[0]):
             #     if ~np.isnan(cur_batch[row, col].asnumpyarray()):
             #         input_batch[row, col] = 1;
-        return self.backend.array(input_batch), self.targets['test'][batch_idx]
+        return self.backend.array(input_batch), self.targets['train'][batch_idx]
 
     def get_batch(self, data, batch):
         """

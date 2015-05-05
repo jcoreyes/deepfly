@@ -19,22 +19,24 @@ from neon.models.mlp import MLP
 from flyvfly import FlyPredict
 from neon.util.persist import deserialize
 
-def prc_curve(targets, scores):
-
-    precision, recall, thresholds = precision_recall_curve(targets, scores)
-    area = auc(recall, precision)
+def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr):
+    precision_ts, recall_ts, thresholds = precision_recall_curve(targets_ts, scores_ts)
+    precision_tr, recall_tr, thresholds = precision_recall_curve(targets_tr, scores_tr)
+    #area = auc(recall, precision)
 
     plt.clf()
-    plt.plot(recall, precision, label="Precision-Recall Curve")
-    plt.title('Precision-Recall, AUC=%0.2f' % area)
+    plt.plot(recall_ts, precision_ts, label="Test")
+    plt.plot(recall_tr, precision_tr, label="Train")
+    plt.title('Precision Recall')
     plt.xlabel("Recall")
     plt.ylabel("Precision")
     plt.ylim([0.0, 1.05])
     plt.xlim([0.0, 1.0])
+    plt.legend(loc="upper right")
     plt.show()
 
 def test():
-    with open('fly_model.pickle', 'r') as f:
+    with open('fly_model2.pickle', 'r') as f:
         model = deserialize(f)
     dataset = FlyPredict(backend=be)
 
@@ -45,14 +47,19 @@ def test():
     be.par = NoPar()
     be.par.backend = be
 
-    for set_name in ['test', 'train']:
-        model.data_layer.init_dataset(dataset)
-        model.data_layer.use_set('test')
-        scores, targets = model.predict_fullset(dataset, "test")
-        scores = np.transpose(scores.asnumpyarray())
-        targets = np.transpose(targets.asnumpyarray())
+    # for set_name in ['test', 'train']:
+    model.data_layer.init_dataset(dataset)
+    model.data_layer.use_set('train')
+    scores, targets = model.predict_fullset(dataset, "train")
+    scores_tr = np.transpose(scores.asnumpyarray())
+    targets_tr = np.transpose(targets.asnumpyarray())
 
-        prc_curve(targets, scores)
+    model.data_layer.use_set('test')
+    scores, targets = model.predict_fullset(dataset, "test")
+    scores_ts = np.transpose(scores.asnumpyarray())
+    targets_ts = np.transpose(targets.asnumpyarray())
+
+    prc_curve(targets_ts, scores_ts, targets_tr, scores_tr)
 
 if __name__ == '__main__':
     test()
