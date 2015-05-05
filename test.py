@@ -1,0 +1,58 @@
+import os
+import logging
+import math
+import numpy as np
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import auc
+import pylab as plt
+logging.basicConfig(level=20,
+                    format='%(asctime)-15s %(levelname)s:%(module)s - %(message)s')
+logger = logging.getLogger('thread example')
+
+# neon specific imports
+from neon.backends.cpu import CPU
+#from neon.backends.gpu import GPU
+from neon.backends.par import NoPar
+be = CPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
+  actual_batch_size=30)
+from neon.models.mlp import MLP
+from flyvfly import FlyPredict
+from neon.util.persist import deserialize
+
+def prc_curve(targets, scores):
+
+    precision, recall, thresholds = precision_recall_curve(targets, scores)
+    area = auc(recall, precision)
+
+    plt.clf()
+    plt.plot(recall, precision, label="Precision-Recall Curve")
+    plt.title('Precision-Recall, AUC=%0.2f' % area)
+    plt.xlabel("Recall")
+    plt.ylabel("Precision")
+    plt.ylim([0.0, 1.05])
+    plt.xlim([0.0, 1.0])
+    plt.show()
+
+def test():
+    with open('fly_model.pickle', 'r') as f:
+        model = deserialize(f)
+    dataset = FlyPredict(backend=be)
+
+    # par related init
+    be.actual_batch_size = model.batch_size
+    be.mpi_size = 1
+    be.mpi_rank = 0
+    be.par = NoPar()
+    be.par.backend = be
+
+    for set_name in ['test', 'train']:
+        model.data_layer.init_dataset(dataset)
+        model.data_layer.use_set('test')
+        scores, targets = model.predict_fullset(dataset, "test")
+        scores = np.transpose(scores.asnumpyarray())
+        targets = np.transpose(targets.asnumpyarray())
+
+        prc_curve(targets, scores)
+
+if __name__ == '__main__':
+    test()

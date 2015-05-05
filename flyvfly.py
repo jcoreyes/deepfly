@@ -13,11 +13,15 @@ import cProfile
 MOVIE_DIR = "/home/coreyesj/flyvflydata/Aggression/Aggression"
 
 # Feature constants
-NUM_BINS = 5
+NUM_BINS = 20
 NUM_FRAMES = 3
 FEATURE_LENGTH = 2 * 17 * NUM_FRAMES * NUM_BINS
 
-movie_nos = [1, 2, 3, 4, 5, 6]
+movie_nos = [1, 2, 3, 4, 5, 6, 7] # Not zero index
+train_nos = [0, 1, 2, 3, 4] # Zero indexed
+validation_nos = [5]
+test_nos = [6]
+
 logger = logging.getLogger(__name__)
 
 def read_tracking_data(movie_no):
@@ -134,41 +138,116 @@ class Fly(Dataset):
 
     def __init__(self, **kwargs):
         self.macro_batched = False
+        self.dist_flag = False
+        self.num_test_sample = 10000
         self.__dict__.update(kwargs)
+        if self.dist_flag:
+            raise NotImplementedError("Dist not yet implemented for Chess")
+        # if not hasattr(self, 'save_dir'):
+        #     self.save_dir = os.path.join(self.repo_path,
+        #                                  self.__class__.__name__)
 
     def load(self):
         if self.inputs['train'] is not None:
             return
-        train_nos = [0, 1, 2, 3]
-        validation_nos = [4]
-        test_nos = [5]
 
         flydata = load_data()
         self.inputs['train'] = np.vstack([flydata[i][0] for i in train_nos])
         self.targets['train'] = np.vstack([flydata[i][1] for i in train_nos])
-        print "data shape"
-        print self.inputs['train'].shape
-        print self.inputs['train'].size
-        print self.targets['train'].shape
-        #self.inputs['validation'] = np.vstack([flydata[i][0] for i in validation_nos])
-        #self.targets['validation'] = np.vstack([flydata[i][1] for i in validation_nos])  
-
+        print "Training size: ", self.inputs['train'].shape
+        self.inputs['validation'] = np.vstack([flydata[i][0] for i in validation_nos])
+        self.targets['validation'] = np.vstack([flydata[i][1] for i in validation_nos])  
         self.inputs['test'] = np.vstack([flydata[i][0] for i in test_nos])
         self.targets['test'] = np.vstack([flydata[i][1] for i in test_nos])
-
+        print "Test Size: ", self.inputs['test'].shape
         self.format()
 
     def get_mini_batch(self, batch_idx):
-        cur_batch = self.inputs['train'][batch_idx]
+        cur_batch = self.inputs['train'][batch_idx].asnumpyarray()
+        #print cur_batch
         batch_size = cur_batch.shape[1]
         # cur_batch = cur_batch[~np.isnan(cur_batch)]
         # print cur_batch.shape
         input_batch = np.zeros((FEATURE_LENGTH, batch_size))
         for col in range(batch_size):
-            bin_idx = cur_batch[:, col].asnumpyarray().astype(int)
-            bin_idx = [~np.isnan(bin_idx)]
-            input_batch[bin_idx, :] = 1
+            bin_idx = cur_batch[:, col]
+            input_batch[bin_idx[~np.isnan(bin_idx)].astype(int), :] = 1
+            # for row in range(cur_batch.shape[0]):
+            #     if ~np.isnan(cur_batch[row, col].asnumpyarray()):
+            #         input_batch[row, col] = 1;
         return self.backend.array(input_batch), self.targets['train'][batch_idx]
+
+    def get_batch(self, data, batch):
+        """
+        Extract and return a single batch from the data specified.
+
+        Arguments:
+            data (list): List of device loaded batches of data
+            batch (int): 0-based index specifying the batch number to get
+
+        Returns:
+            neon.backends.Tensor: Single batch of data
+
+        See Also:
+            transpose_batches
+        """
+        return data[batch]
+
+class FlyPredict(Dataset):
+    """
+    Sets up the fly v fly dataset.
+
+    Attributes:
+        backend (neon.backends.Backend): backend used for this data
+        inputs (dict): structure housing the loaded train/test/validation
+                       input data
+        targets (dict): structure housing the loaded train/test/validation
+                        target data
+
+    Kwargs:
+        repo_path (str, optional): where to locally host this dataset on disk
+    """
+
+    def __init__(self, **kwargs):
+        self.macro_batched = False
+        self.dist_flag = False
+        self.num_test_sample = 10000
+        self.__dict__.update(kwargs)
+        if self.dist_flag:
+            raise NotImplementedError("Dist not yet implemented for Chess")
+        # if not hasattr(self, 'save_dir'):
+        #     self.save_dir = os.path.join(self.repo_path,
+        #                                  self.__class__.__name__)
+
+    def load(self):
+        if self.inputs['train'] is not None:
+            return
+
+        flydata = load_data()
+        #self.inputs['train'] = np.vstack([flydata[i][0] for i in train_nos])
+        #self.targets['train'] = np.vstack([flydata[i][1] for i in train_nos])
+        #print "Training size: ", self.inputs['train'].shape
+        #self.inputs['validation'] = np.vstack([flydata[i][0] for i in validation_nos])
+        #self.targets['validation'] = np.vstack([flydata[i][1] for i in validation_nos])  
+        self.inputs['test'] = np.vstack([flydata[i][0][:15000,:] for i in test_nos])
+        self.targets['test'] = np.vstack([flydata[i][1][:15000,:] for i in test_nos])
+        print "Test Size: ", self.inputs['test'].shape
+        self.test = np.vstack([flydata[i][1][:15000,:] for i in test_nos])
+        self.format()
+
+    def get_mini_batch(self, batch_idx):
+        cur_batch = self.inputs['test'][batch_idx].asnumpyarray()
+        #print cur_batch
+        batch_size = cur_batch.shape[1]
+        # cur_batch = cur_batch[~np.isnan(cur_batch)]
+        input_batch = np.zeros((FEATURE_LENGTH, batch_size))
+        for col in range(batch_size):
+            bin_idx = cur_batch[:, col]
+            input_batch[bin_idx[~np.isnan(bin_idx)].astype(int), :] = 1
+            # for row in range(cur_batch.shape[0]):
+            #     if ~np.isnan(cur_batch[row, col].asnumpyarray()):
+            #         input_batch[row, col] = 1;
+        return self.backend.array(input_batch), self.targets['test'][batch_idx]
 
     def get_batch(self, data, batch):
         """
