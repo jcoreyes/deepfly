@@ -15,7 +15,7 @@ MOVIE_DIR = "/home/coreyesj/flyvflydata/Aggression/Aggression"
 # Feature constants
 NUM_BINS = 20
 NUM_FRAMES = 3
-FEATURE_LENGTH = 2 * 17 * NUM_FRAMES * NUM_BINS
+FEATURE_LENGTH = 2 * 36 * NUM_FRAMES * NUM_BINS
 
 movie_nos = [1, 2, 3, 4, 5, 6, 7] # Not zero index
 train_nos = [0, 1, 2, 3, 4] # Zero indexed
@@ -24,14 +24,19 @@ test_nos = [6]
 
 logger = logging.getLogger(__name__)
 
-def read_tracking_data(movie_no):
-    """ Read tracking data from matlab structs"""
+def read_tracking_data(movie_no, use_trk=True):
+    """ Read tracking data from matlab structs
+        Read trajectory data is use_trk is False"""
+    if use_trk:
+        matpath = "%s/movie%d/movie%d_track.mat" %(MOVIE_DIR, movie_no, movie_no)
+        matfile = scipy.io.loadmat(matpath, struct_as_record=True)
+        trk_flagframes, trk_names, trk_data = matfile['trk'][0,0]
+    else:
+        matpath = "%s/movie%d/movie%d_feat.mat" %(MOVIE_DIR, movie_no, movie_no)
+        matfile = scipy.io.loadmat(matpath, struct_as_record=True)
+        trk_names, trk_data = matfile['feat'][0,0]
 
-    matpath = "%s/movie%d/movie%d_track.mat" %(MOVIE_DIR, movie_no, movie_no)
-    matfile = scipy.io.loadmat(matpath, struct_as_record=True)
-    trk_flagframes, trk_names, trk_data = matfile['trk'][0,0]
-
-    return (trk_flagframes, trk_names, trk_data)
+    return trk_data
 
 def read_labels(movie_no):
     """ Read action labels from matlab structs"""
@@ -71,12 +76,12 @@ def discretize(trk_data, min_range, max_range, num_bins=NUM_BINS):
     return disc_trk_data
 
 
-def find_ranges():
+def find_ranges(use_trk = True):
     """ Find min and max ranges for features in all movies"""
-    all_trk_data = read_tracking_data(movie_nos[0])[2]
 
+    all_trk_data = read_tracking_data(movie_nos[0], use_trk=use_trk)
     for movie_no in movie_nos[1:]:
-        trk_data = read_tracking_data(movie_no)[2]
+        trk_data = read_tracking_data(movie_no, use_trk=use_trk)
         all_trk_data = np.vstack((all_trk_data, trk_data))
 
     max_range = np.nanmax(all_trk_data, axis=1).max(axis=0)
@@ -106,24 +111,31 @@ def transform(trk_data, labels, window_length=3, stride=1):
     for i in xrange(0, len(action_labels)):
         start, stop = action_labels[i, :]
         Y[start:stop, 0] = 1
-
+    #X, Y = filter_data(X, Y)
     return X, Y
 
-def filter(X, Y):
-    """Filter out percentage of data"""
-    idx1 = np.where(Y == 0)
-    idx2 = np.where(Y == 1)
-    no_action = int(0.2 * idx.shape[0])
+def filter_data(X, Y):
+    """Filter out percentage of data with no actions"""
+    idx1 = np.where(Y == 0)[0]
+    idx2 = np.where(Y == 1)[0]
+    no_action = int(0.2 * idx1.shape[0])
+    print("Filtered out no action from %d to %d" %(len(idx1), no_action))
+    print("Percent with action is now %f" %(float(len(idx2)) / (len(idx2) + len(idx1))))
     idx1 = idx1[0:no_action]
     num_points = len(idx1) + len(idx2)
-    newX = np.zeros(())
-
+    newX = np.zeros((num_points, X.shape[1]))
+    newX[:len(idx1), :] = X[idx1, :]
+    newX[len(idx1):,:] = X[idx2, :]
+    newY = np.zeros((num_points, 1))
+    newY[:len(idx1), 0] = Y[idx1,0]
+    newY[len(idx1):,0] = Y[idx2, 0]  
+    return newX, newY
 
 def load_data():
-    min_range, max_range = find_ranges()
+    min_range, max_range = find_ranges(use_trk=True)
     data = []
     for movie_no in movie_nos:
-        trk_data = discretize(read_tracking_data(movie_no)[2], min_range, max_range)
+        trk_data = discretize(read_tracking_data(movie_no, use_trk=True), min_range, max_range)
         #trk_data = read_tracking_data(movie_no)[2]
         labels = read_labels(movie_no)[1]
         data.append(transform(trk_data, labels))
@@ -242,7 +254,6 @@ class FlyPredict(Dataset):
         self.inputs['test'] = np.vstack([flydata[i][0] for i in test_nos])
         self.targets['test'] = np.vstack([flydata[i][1] for i in test_nos])
         print "Test Size: ", self.inputs['test'].shape
-        self.test = np.vstack([flydata[i][1][:15000,:] for i in test_nos])
         self.format()
 
     def get_mini_batch(self, batch_idx):

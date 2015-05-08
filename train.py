@@ -27,7 +27,7 @@ from neon.util.persist import serialize
 MINIBATCH_SIZE = 30
 NUM_BINS = 20
 NUM_FRAMES = 3
-FEATURE_LENGTH = 2 * 17 * NUM_FRAMES * NUM_BINS
+FEATURE_LENGTH = 2 * 36 * NUM_FRAMES * NUM_BINS
 
 def get_parameters(n_in=None, n_hidden_units=1000, n_hidden_layers=None):
     print 'initializing layers'
@@ -94,7 +94,7 @@ def train():
         model.epochs_complete = 0
         model.fit(dataset)
         model.print_layers()
-        serialize(model, "fly_model2.pickle")
+        serialize(model, "fly_model3.pickle")
 
 if __name__ == '__main__':
     train()

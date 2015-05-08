@@ -36,7 +36,7 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr):
     plt.show()
 
 def test():
-    with open('fly_model2.pickle', 'r') as f:
+    with open('fly_model3.pickle', 'r') as f:
         model = deserialize(f)
     dataset = FlyPredict(backend=be)
 
