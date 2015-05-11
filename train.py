@@ -1,6 +1,7 @@
 import os
 import logging
 import math
+import sys
 
 logging.basicConfig(level=20,
                     format='%(asctime)-15s %(levelname)s:%(module)s - %(message)s')
@@ -27,7 +28,7 @@ from neon.util.persist import serialize
 MINIBATCH_SIZE = 30
 NUM_BINS = 20
 NUM_FRAMES = 3
-FEATURE_LENGTH = 2 * 36 * NUM_FRAMES * NUM_BINS
+FEATURE_LENGTH = 2 * 17 * NUM_FRAMES * NUM_BINS
 
 def get_parameters(n_in=None, n_hidden_units=1000, n_hidden_layers=None):
     print 'initializing layers'
@@ -42,6 +43,7 @@ def get_parameters(n_in=None, n_hidden_units=1000, n_hidden_layers=None):
     # 3x updates/mb
     gdmwd = {'type': 'gradient_descent_momentum',
              'lr_params': {'learning_rate': 0.01, 'backend': be,
+                            'weight_decay': 0.01,
                            'momentum_params': {'type': 'constant', 'coef': 0.9}}}
     dataLayer = DataLayer(name='d0', nout=n_in)
     layers = []
@@ -68,6 +70,7 @@ def get_parameters(n_in=None, n_hidden_units=1000, n_hidden_layers=None):
 
 def train():
 
+    save_file = sys.argv[1]
     layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[1000, 1])
     # define model
     model = MLP(num_epochs=1, batch_size=MINIBATCH_SIZE,
@@ -94,7 +97,7 @@ def train():
         model.epochs_complete = 0
         model.fit(dataset)
         model.print_layers()
-        serialize(model, "fly_model3.pickle")
+        serialize(model, save_file)
 
 if __name__ == '__main__':
     train()

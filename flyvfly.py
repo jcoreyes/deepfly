@@ -15,12 +15,11 @@ MOVIE_DIR = "/home/coreyesj/flyvflydata/Aggression/Aggression"
 # Feature constants
 NUM_BINS = 20
 NUM_FRAMES = 3
-FEATURE_LENGTH = 2 * 36 * NUM_FRAMES * NUM_BINS
+FEATURE_LENGTH = 2 * 17 * NUM_FRAMES * NUM_BINS
 
 movie_nos = [1, 2, 3, 4, 5, 6, 7] # Not zero index
 train_nos = [0, 1, 2, 3, 4] # Zero indexed
-validation_nos = [5]
-test_nos = [6]
+test_nos = [5, 6]
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +90,7 @@ def find_ranges(use_trk = True):
 
     return min_range, max_range
 
-def transform(trk_data, labels, window_length=3, stride=1):
+def transform(trk_data, labels, window_length=3, stride=1,filterData=True):
     """Get sliding window of frames from tracking data"""
 
     num_frames, num_features = trk_data.shape[1:3]
@@ -111,16 +110,18 @@ def transform(trk_data, labels, window_length=3, stride=1):
     for i in xrange(0, len(action_labels)):
         start, stop = action_labels[i, :]
         Y[start:stop, 0] = 1
-    #X, Y = filter_data(X, Y)
+    if filterData:
+        X, Y = filter_data(X, Y)
     return X, Y
 
 def filter_data(X, Y):
     """Filter out percentage of data with no actions"""
     idx1 = np.where(Y == 0)[0]
     idx2 = np.where(Y == 1)[0]
-    no_action = int(0.2 * idx1.shape[0])
+    no_action = int(0.1 * idx1.shape[0])
     print("Filtered out no action from %d to %d" %(len(idx1), no_action))
-    print("Percent with action is now %f" %(float(len(idx2)) / (len(idx2) + len(idx1))))
+    print("Percent with action is now %f instead of %f" %(float(len(idx2)) / (no_action+len(idx2)),
+        float(len(idx2)) / (len(idx2) + len(idx1))))
     idx1 = idx1[0:no_action]
     num_points = len(idx1) + len(idx2)
     newX = np.zeros((num_points, X.shape[1]))
@@ -138,7 +139,10 @@ def load_data():
         trk_data = discretize(read_tracking_data(movie_no, use_trk=True), min_range, max_range)
         #trk_data = read_tracking_data(movie_no)[2]
         labels = read_labels(movie_no)[1]
-        data.append(transform(trk_data, labels))
+        filterData = False
+        if movie_no in train_nos:
+            filterData = True
+        data.append(transform(trk_data, labels, filterData=filterData))
 
     return data
 
@@ -164,7 +168,7 @@ class Fly(Dataset):
         self.num_test_sample = 10000
         self.__dict__.update(kwargs)
         if self.dist_flag:
-            raise NotImplementedError("Dist not yet implemented for Chess")
+            raise NotImplementedError("Dist not yet implemented for Fly")
         # if not hasattr(self, 'save_dir'):
         #     self.save_dir = os.path.join(self.repo_path,
         #                                  self.__class__.__name__)
@@ -177,8 +181,8 @@ class Fly(Dataset):
         self.inputs['train'] = np.vstack([flydata[i][0] for i in train_nos])
         self.targets['train'] = np.vstack([flydata[i][1] for i in train_nos])
         print "Training size: ", self.inputs['train'].shape
-        self.inputs['validation'] = np.vstack([flydata[i][0] for i in validation_nos])
-        self.targets['validation'] = np.vstack([flydata[i][1] for i in validation_nos])  
+        # self.inputs['validation'] = np.vstack([flydata[i][0] for i in validation_nos])
+        # self.targets['validation'] = np.vstack([flydata[i][1] for i in validation_nos])  
         self.inputs['test'] = np.vstack([flydata[i][0] for i in test_nos])
         self.targets['test'] = np.vstack([flydata[i][1] for i in test_nos])
         print "Test Size: ", self.inputs['test'].shape
@@ -186,17 +190,11 @@ class Fly(Dataset):
 
     def get_mini_batch(self, batch_idx):
         cur_batch = self.inputs['train'][batch_idx].asnumpyarray()
-        #print cur_batch
         batch_size = cur_batch.shape[1]
-        # cur_batch = cur_batch[~np.isnan(cur_batch)]
-        # print cur_batch.shape
         input_batch = np.zeros((FEATURE_LENGTH, batch_size))
         for col in range(batch_size):
             bin_idx = cur_batch[:, col]
             input_batch[bin_idx[~np.isnan(bin_idx)].astype(int), :] = 1
-            # for row in range(cur_batch.shape[0]):
-            #     if ~np.isnan(cur_batch[row, col].asnumpyarray()):
-            #         input_batch[row, col] = 1;
         return self.backend.array(input_batch), self.targets['train'][batch_idx]
 
     def get_batch(self, data, batch):

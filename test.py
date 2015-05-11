@@ -5,6 +5,8 @@ import numpy as np
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import auc
 import pylab as plt
+import sys
+
 logging.basicConfig(level=20,
                     format='%(asctime)-15s %(levelname)s:%(module)s - %(message)s')
 logger = logging.getLogger('thread example')
@@ -27,16 +29,16 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr):
     plt.clf()
     plt.plot(recall_ts, precision_ts, label="Test")
     plt.plot(recall_tr, precision_tr, label="Train")
-    plt.title('Precision Recall')
+    plt.title('Precision Recall of Model 4')
     plt.xlabel("Recall")
     plt.ylabel("Precision")
     plt.ylim([0.0, 1.05])
     plt.xlim([0.0, 1.0])
-    plt.legend(loc="upper right")
+    plt.legend(loc="lower left")
     plt.show()
 
 def test():
-    with open('fly_model3.pickle', 'r') as f:
+    with open(sys.argv[1], 'r') as f:
         model = deserialize(f)
     dataset = FlyPredict(backend=be)
 
