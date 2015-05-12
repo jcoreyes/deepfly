@@ -29,13 +29,13 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr):
     plt.clf()
     plt.plot(recall_ts, precision_ts, label="Test")
     plt.plot(recall_tr, precision_tr, label="Train")
-    plt.title('Precision Recall of Model 5')
+    plt.title('Precision Recall of Model 6')
     plt.xlabel("Recall")
     plt.ylabel("Precision")
     plt.ylim([0.0, 1.05])
     plt.xlim([0.0, 1.0])
     plt.legend(loc="lower left")
-    plt.show()
+    plt.savefig('PRC_model6.png')
 
 def test():
     with open(sys.argv[1], 'r') as f:
