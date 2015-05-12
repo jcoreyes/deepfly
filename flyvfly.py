@@ -10,8 +10,8 @@ import scipy.io
 from neon.datasets.dataset import Dataset
 import cProfile
 
-MOVIE_DIR = "/home/coreyesj/flyvflydata/Aggression/Aggression"
-
+#MOVIE_DIR = "~/flyvflydata/Aggression/Aggression"
+MOVIE_DIR = "/Users/jdc/flyvflydata/Aggression/Aggression"
 # Feature constants
 NUM_BINS = 20
 NUM_FRAMES = 3
