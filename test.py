@@ -29,7 +29,7 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr):
     plt.clf()
     plt.plot(recall_ts, precision_ts, label="Test")
     plt.plot(recall_tr, precision_tr, label="Train")
-    plt.title('Precision Recall of Model 4')
+    plt.title('Precision Recall of Model 5')
     plt.xlabel("Recall")
     plt.ylabel("Precision")
     plt.ylim([0.0, 1.05])
@@ -51,12 +51,14 @@ def test():
 
     # for set_name in ['test', 'train']:
     model.data_layer.init_dataset(dataset)
-    model.data_layer.use_set('train')
+    model.data_layer.use_set('train', predict=True)
+    dataset.use_set = 'train'
     scores, targets = model.predict_fullset(dataset, "train")
     scores_tr = np.transpose(scores.asnumpyarray())
     targets_tr = np.transpose(targets.asnumpyarray())
 
-    model.data_layer.use_set('test')
+    model.data_layer.use_set('test', predict=True)
+    dataset.use_set = 'test'
     scores, targets = model.predict_fullset(dataset, "test")
     scores_ts = np.transpose(scores.asnumpyarray())
     targets_ts = np.transpose(targets.asnumpyarray())
