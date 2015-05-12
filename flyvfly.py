@@ -9,22 +9,24 @@ import scipy.io
 import random
 from neon.datasets.dataset import Dataset
 import cProfile
+import matplotlib.pyplot as plt
 
 #MOVIE_DIR = "/home/coreyesj/flyvflydata/Aggression/Aggression"
 MOVIE_DIR = "/Users/jdc/flyvflydata/Aggression/Aggression"
 # Feature constants
 NUM_BINS = 1
 NUM_FRAMES = 3
-FEATURE_LENGTH = 2 * 36 * NUM_FRAMES * NUM_BINS
+FEATURE_LENGTH = 2 * 17 * NUM_FRAMES * NUM_BINS
 
 movie_nos = [1, 2, 3, 4, 5, 6, 7] # Not zero index
 train_nos = [0, 1, 2, 3, 4] # Zero indexed
 test_nos = [5, 6]
 neg_frac = 0.5
 pos_frac = 4.0
+use_trk = True
 logger = logging.getLogger(__name__)
 
-def read_tracking_data(movie_no, use_trk=True):
+def read_tracking_data(movie_no):
     """ Read tracking data from matlab structs
         Read trajectory data is use_trk is False"""
     if use_trk:
@@ -35,7 +37,6 @@ def read_tracking_data(movie_no, use_trk=True):
         matpath = "%s/movie%d/movie%d_feat.mat" %(MOVIE_DIR, movie_no, movie_no)
         matfile = scipy.io.loadmat(matpath, struct_as_record=True)
         trk_names, trk_data = matfile['feat'][0,0]
-
     return trk_data
 
 def read_labels(movie_no):
@@ -76,19 +77,23 @@ def discretize(trk_data, min_range, max_range, num_bins=NUM_BINS):
     return disc_trk_data
 
 
-def find_ranges(use_trk = True):
+def find_ranges():
     """ Find min and max ranges for features in all movies"""
 
-    all_trk_data = read_tracking_data(movie_nos[0], use_trk=use_trk)
+    all_trk_data = read_tracking_data(movie_nos[0])
     for movie_no in movie_nos[1:]:
-        trk_data = read_tracking_data(movie_no, use_trk=use_trk)
+        trk_data = read_tracking_data(movie_no)
         all_trk_data = np.vstack((all_trk_data, trk_data))
 
     max_range = np.nanmax(all_trk_data, axis=1).max(axis=0)
     max_range *= (1+0.01*np.sign(max_range))
     min_range = np.nanmin(all_trk_data, axis=1).min(axis=0)
     min_range *= (1-0.01*np.sign(min_range))
-
+    # for i in range(16):
+    #     h_data = all_trk_data[0,:,i]
+    #     h_data = h_data[~np.isnan(h_data)]
+    #     plt.hist(h_data, bins=20)
+    #     plt.show()
     return min_range, max_range
 
 def transform(trk_data, labels, window_length=3, stride=1,filterData=True):
@@ -136,11 +141,11 @@ def filter_data(X, Y):
     return newX, newY
 
 def load_data():
-    min_range, max_range = find_ranges(use_trk=False)
+    min_range, max_range = find_ranges()
     data = []
     for movie_no in movie_nos:
         #trk_data = discretize(read_tracking_data(movie_no, use_trk=False), min_range, max_range)
-	trk_data = read_tracking_data(movie_no, use_trk=False)
+	trk_data = read_tracking_data(movie_no)
 	trk_data[np.isnan(trk_data)] = 0
         labels = read_labels(movie_no)[1]
         filterData = False
