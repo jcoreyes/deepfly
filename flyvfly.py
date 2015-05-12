@@ -6,21 +6,22 @@ More info at: http://www.vision.caltech.edu/Video_Datasets/Fly-vs-Fly/download.h
 import logging
 import numpy as np, h5py 
 import scipy.io
-
+import random
 from neon.datasets.dataset import Dataset
 import cProfile
 
-#MOVIE_DIR = "~/flyvflydata/Aggression/Aggression"
-MOVIE_DIR = "/Users/jdc/flyvflydata/Aggression/Aggression"
+MOVIE_DIR = "/home/coreyesj/flyvflydata/Aggression/Aggression"
+#MOVIE_DIR = "/Users/jdc/flyvflydata/Aggression/Aggression"
 # Feature constants
-NUM_BINS = 40
+NUM_BINS = 30
 NUM_FRAMES = 3
 FEATURE_LENGTH = 2 * 17 * NUM_FRAMES * NUM_BINS
 
 movie_nos = [1, 2, 3, 4, 5, 6, 7] # Not zero index
 train_nos = [0, 1, 2, 3, 4] # Zero indexed
 test_nos = [5, 6]
-
+neg_frac = 0.5
+pos_frac = 4.0
 logger = logging.getLogger(__name__)
 
 def read_tracking_data(movie_no, use_trk=True):
@@ -116,8 +117,6 @@ def transform(trk_data, labels, window_length=3, stride=1,filterData=True):
 
 def filter_data(X, Y):
     """Filter out percentage of data with no actions"""
-    neg_frac = 0.8
-    pos_frac = 1.0
     idx1 = np.where(Y == 0)[0]
     idx2 = np.where(Y == 1)[0]
     num_neg = int(neg_frac * idx1.shape[0])
@@ -192,6 +191,7 @@ class Fly(Dataset):
         self.format()
 
     def get_mini_batch(self, batch_idx):
+        batch_idx = random.randint(0, len(self.inputs['train']))
         cur_batch = self.inputs['train'][batch_idx].asnumpyarray()
         batch_size = cur_batch.shape[1]
         input_batch = np.zeros((FEATURE_LENGTH, batch_size))
@@ -246,7 +246,7 @@ class FlyPredict(Dataset):
     def load(self):
         if self.inputs['train'] is not None:
             return
-
+        pos_frac = 1.0
         flydata = load_data()
         self.inputs['train'] = np.vstack([flydata[i][0] for i in train_nos])
         self.targets['train'] = np.vstack([flydata[i][1] for i in train_nos])

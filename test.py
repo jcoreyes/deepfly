@@ -13,15 +13,15 @@ logger = logging.getLogger('thread example')
 
 # neon specific imports
 from neon.backends.cpu import CPU
-from neon.backends.cc2 import GPU
+#from neon.backends.cc2 import GPU
 from neon.backends.par import NoPar
-be = GPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
+be = CPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
   actual_batch_size=30)
 from neon.models.mlp import MLP
 from flyvfly import FlyPredict
 from neon.util.persist import deserialize
 
-def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr):
+def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no):
     precision_ts, recall_ts, thresholds = precision_recall_curve(targets_ts, scores_ts, pos_label=1)
     precision_tr, recall_tr, thresholds = precision_recall_curve(targets_tr, scores_tr, pos_label=1)
     #area = auc(recall, precision)
@@ -30,13 +30,13 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr):
     plt.clf()
     plt.plot(recall_ts, precision_ts, label="Test")
     plt.plot(recall_tr, precision_tr, label="Train")
-    plt.title('Precision Recall of Model 9')
+    plt.title('Precision Recall of Model ' + model_no)
     plt.xlabel("Recall")
     plt.ylabel("Precision")
     plt.ylim([0.0, 1.05])
     plt.xlim([0.0, 1.0])
     plt.legend(loc="center")
-    plt.savefig('PRC_model9.png')
+    plt.savefig('PRC_model' + model_no +'.png')
 
 def test():
     with open(sys.argv[1], 'r') as f:
@@ -63,8 +63,8 @@ def test():
     scores, targets = model.predict_fullset(dataset, "test")
     scores_ts = np.transpose(scores.asnumpyarray())
     targets_ts = np.transpose(targets.asnumpyarray())
-
-    prc_curve(targets_ts, scores_ts, targets_tr, scores_tr)
+    model_no = sys.argv[1].split(".")[0][-1]
+    prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no)
 
 if __name__ == '__main__':
     test()

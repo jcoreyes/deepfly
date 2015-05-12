@@ -26,7 +26,7 @@ from neon.util.persist import serialize
 from neon.util.persist import deserialize
 
 MINIBATCH_SIZE = 30
-NUM_BINS = 40
+NUM_BINS = 30
 NUM_FRAMES = 3
 FEATURE_LENGTH = 2 * 17 * NUM_FRAMES * NUM_BINS
 
@@ -43,7 +43,7 @@ def get_parameters(n_in=None, n_hidden_units=1000, n_hidden_layers=None):
     # 3x updates/mb
     gdmwd = {'type': 'gradient_descent_momentum',
              'lr_params': {'learning_rate': 0.005, 'backend': be,
-                            'weight_decay': 0.01,
+                            'weight_decay': 0.015,
                            'momentum_params': {'type': 'constant', 'coef': 0.9}}}
     dataLayer = DataLayer(name='d0', nout=n_in)
     layers = []
