@@ -116,20 +116,23 @@ def transform(trk_data, labels, window_length=3, stride=1,filterData=True):
 
 def filter_data(X, Y):
     """Filter out percentage of data with no actions"""
+    neg_frac = 0.2
+    pos_frac = 5.0
     idx1 = np.where(Y == 0)[0]
     idx2 = np.where(Y == 1)[0]
-    no_action = int(0.1 * idx1.shape[0])
-    print("Filtered out no action from %d to %d" %(len(idx1), no_action))
-    print("Percent with action is now %f instead of %f" %(float(len(idx2)) / (no_action+len(idx2)),
+    num_neg = int(neg_frac * idx1.shape[0])
+    num_pos = int(pos_frac * idx2.shape[0]) 
+    num_points = num_neg + num_pos
+    print("Filtered out no action from %d to %d" %(len(idx1), num_neg))
+    print("Percent with action is now %f instead of %f" %(num_pos / (num_points),
         float(len(idx2)) / (len(idx2) + len(idx1))))
-    idx1 = idx1[0:no_action]
-    num_points = len(idx1) + len(idx2)
+    idx1 = idx1[0:num_neg]
     newX = np.zeros((num_points, X.shape[1]))
     newX[:len(idx1), :] = X[idx1, :]
-    newX[len(idx1):,:] = X[idx2, :]
+    newX[len(idx1):,:] = np.tile(X[idx2, :], (int(pos_frac), 1))
     newY = np.zeros((num_points, 1))
     newY[:len(idx1), 0] = Y[idx1,0]
-    newY[len(idx1):,0] = Y[idx2, 0]  
+    newY[len(idx1):,0] = np.tile(Y[idx2, 0], (1, int(pos_frac)))
     return newX, newY
 
 def load_data():

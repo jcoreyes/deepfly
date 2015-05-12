@@ -23,7 +23,7 @@ from neon.transforms.cross_entropy import CrossEntropy
 from neon.optimizers import GradientDescentMomentum
 from flyvfly import Fly
 from neon.util.persist import serialize
-
+from neon.util.persist import deserialize
 
 MINIBATCH_SIZE = 30
 NUM_BINS = 20
@@ -42,8 +42,8 @@ def get_parameters(n_in=None, n_hidden_units=1000, n_hidden_layers=None):
     # in original learning_rate was exponentially decaying with 0.03 but with
     # 3x updates/mb
     gdmwd = {'type': 'gradient_descent_momentum',
-             'lr_params': {'learning_rate': 0.01, 'backend': be,
-                            'weight_decay': 0.01,
+             'lr_params': {'learning_rate': 0.005, 'backend': be,
+                            'weight_decay': 0.001,
                            'momentum_params': {'type': 'constant', 'coef': 0.9}}}
     dataLayer = DataLayer(name='d0', nout=n_in)
     layers = []
@@ -71,19 +71,22 @@ def get_parameters(n_in=None, n_hidden_units=1000, n_hidden_layers=None):
 def train():
 
     save_file = sys.argv[1]
-    layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[1000, 1])
-    # define model
-    model = MLP(num_epochs=1, batch_size=MINIBATCH_SIZE,
-                 layers=layers, epochs_complete=0,
-                 step_print=100)
-    model.link()
-    #be.configure(model, datapar=False, modelpar=False)
-    model.initialize(be)
-    model.data_layer = model.layers[0]
-    model.cost_layer = model.layers[-1]
+    if len(sys.argv) > 2:
+	model = deserialize(sys.argv[2])
+    else:
+        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[1000, 1])
+        # define model
+        model = MLP(num_epochs=1, batch_size=MINIBATCH_SIZE,
+                     layers=layers, epochs_complete=0,
+                     step_print=100)
+        model.link()
+        #be.configure(model, datapar=False, modelpar=False)
+        model.initialize(be)
+        model.data_layer = model.layers[0]
+        model.cost_layer = model.layers[-1]
     dataset = Fly(backend=be,
                     repo_path=os.path.expanduser('~/flyvfly/'))
-
+    
     # par related init
     be.actual_batch_size = model.batch_size
     be.mpi_size = 1
