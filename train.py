@@ -9,7 +9,7 @@ logger = logging.getLogger('thread example')
 
 # neon specific imports
 from neon.backends.cpu import CPU
-from neon.backends.gpu import GPU
+from neon.backends.cc2 import GPU
 from neon.backends.par import NoPar
 be = GPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
   actual_batch_size=30)
@@ -91,7 +91,7 @@ def train():
     be.actual_batch_size = model.batch_size
     be.mpi_size = 1
     be.mpi_rank = 0
-    be.par = NoPar(be)
+    be.par = NoPar()
     be.par.backend = be
 
     max_macro_epochs = 1000

@@ -13,9 +13,9 @@ logger = logging.getLogger('thread example')
 
 # neon specific imports
 from neon.backends.cpu import CPU
-#from neon.backends.gpu import GPU
+from neon.backends.cc2 import GPU
 from neon.backends.par import NoPar
-be = CPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
+be = GPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
   actual_batch_size=30)
 from neon.models.mlp import MLP
 from flyvfly import FlyPredict
