@@ -13,7 +13,7 @@ import cProfile
 #MOVIE_DIR = "~/flyvflydata/Aggression/Aggression"
 MOVIE_DIR = "/Users/jdc/flyvflydata/Aggression/Aggression"
 # Feature constants
-NUM_BINS = 20
+NUM_BINS = 40
 NUM_FRAMES = 3
 FEATURE_LENGTH = 2 * 17 * NUM_FRAMES * NUM_BINS
 
@@ -116,15 +116,15 @@ def transform(trk_data, labels, window_length=3, stride=1,filterData=True):
 
 def filter_data(X, Y):
     """Filter out percentage of data with no actions"""
-    neg_frac = 0.2
-    pos_frac = 5.0
+    neg_frac = 0.8
+    pos_frac = 1.0
     idx1 = np.where(Y == 0)[0]
     idx2 = np.where(Y == 1)[0]
     num_neg = int(neg_frac * idx1.shape[0])
     num_pos = int(pos_frac * idx2.shape[0]) 
     num_points = num_neg + num_pos
     print("Filtered out no action from %d to %d" %(len(idx1), num_neg))
-    print("Percent with action is now %f instead of %f" %(num_pos / (num_points),
+    print("Percent with action is now %f instead of %f" %(num_pos / float(num_points),
         float(len(idx2)) / (len(idx2) + len(idx1))))
     idx1 = idx1[0:num_neg]
     newX = np.zeros((num_points, X.shape[1]))
@@ -235,6 +235,7 @@ class FlyPredict(Dataset):
         self.macro_batched = False
         self.dist_flag = False
         self.num_test_sample = 10000
+	self.use_set = "train"
         self.__dict__.update(kwargs)
         if self.dist_flag:
             raise NotImplementedError("Dist not yet implemented for Chess")
@@ -258,7 +259,7 @@ class FlyPredict(Dataset):
         self.format()
 
     def get_mini_batch(self, batch_idx):
-        cur_batch = self.inputs['train'][batch_idx].asnumpyarray()
+        cur_batch = self.inputs[self.use_set][batch_idx].asnumpyarray()
         #print cur_batch
         batch_size = cur_batch.shape[1]
         # cur_batch = cur_batch[~np.isnan(cur_batch)]
@@ -269,7 +270,7 @@ class FlyPredict(Dataset):
             # for row in range(cur_batch.shape[0]):
             #     if ~np.isnan(cur_batch[row, col].asnumpyarray()):
             #         input_batch[row, col] = 1;
-        return self.backend.array(input_batch), self.targets['train'][batch_idx]
+        return self.backend.array(input_batch), self.targets[self.use_set][batch_idx]
 
     def get_batch(self, data, batch):
         """

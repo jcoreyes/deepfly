@@ -22,20 +22,21 @@ from flyvfly import FlyPredict
 from neon.util.persist import deserialize
 
 def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr):
-    precision_ts, recall_ts, thresholds = precision_recall_curve(targets_ts, scores_ts)
-    precision_tr, recall_tr, thresholds = precision_recall_curve(targets_tr, scores_tr)
+    precision_ts, recall_ts, thresholds = precision_recall_curve(targets_ts, scores_ts, pos_label=1)
+    precision_tr, recall_tr, thresholds = precision_recall_curve(targets_tr, scores_tr, pos_label=1)
     #area = auc(recall, precision)
-
+    print precision_ts[len(precision_ts)-5:]
+    print precision_tr[len(precision_tr)-5:]
     plt.clf()
     plt.plot(recall_ts, precision_ts, label="Test")
     plt.plot(recall_tr, precision_tr, label="Train")
-    plt.title('Precision Recall of Model 6')
+    plt.title('Precision Recall of Model 9')
     plt.xlabel("Recall")
     plt.ylabel("Precision")
     plt.ylim([0.0, 1.05])
     plt.xlim([0.0, 1.0])
-    plt.legend(loc="lower left")
-    plt.savefig('PRC_model6.png')
+    plt.legend(loc="center")
+    plt.savefig('PRC_model9.png')
 
 def test():
     with open(sys.argv[1], 'r') as f:

@@ -26,7 +26,7 @@ from neon.util.persist import serialize
 from neon.util.persist import deserialize
 
 MINIBATCH_SIZE = 30
-NUM_BINS = 20
+NUM_BINS = 40
 NUM_FRAMES = 3
 FEATURE_LENGTH = 2 * 17 * NUM_FRAMES * NUM_BINS
 
@@ -43,7 +43,7 @@ def get_parameters(n_in=None, n_hidden_units=1000, n_hidden_layers=None):
     # 3x updates/mb
     gdmwd = {'type': 'gradient_descent_momentum',
              'lr_params': {'learning_rate': 0.005, 'backend': be,
-                            'weight_decay': 0.001,
+                            'weight_decay': 0.01,
                            'momentum_params': {'type': 'constant', 'coef': 0.9}}}
     dataLayer = DataLayer(name='d0', nout=n_in)
     layers = []
@@ -54,7 +54,7 @@ def get_parameters(n_in=None, n_hidden_units=1000, n_hidden_layers=None):
                                   nout=n_hidden_units[l],
                                   lrule_init=gdmwd,
                                   weight_init=wt_init0,
-                                  activation=RectLin()))
+                                  activation=Logistic()))
         else:
             layers.append(FCLayer(name='h' + str(l),
                                   nout=1,
@@ -78,7 +78,7 @@ def train():
         # define model
         model = MLP(num_epochs=1, batch_size=MINIBATCH_SIZE,
                      layers=layers, epochs_complete=0,
-                     step_print=100)
+                     step_print=1000)
         model.link()
         #be.configure(model, datapar=False, modelpar=False)
         model.initialize(be)
