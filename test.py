@@ -13,9 +13,9 @@ logger = logging.getLogger('thread example')
 
 # neon specific imports
 from neon.backends.cpu import CPU
-#from neon.backends.cc2 import GPU
+from neon.backends.cc2 import GPU
 from neon.backends.par import NoPar
-be = CPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
+be = GPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
   actual_batch_size=30)
 from neon.models.mlp import MLP
 from flyvfly import FlyPredict
@@ -63,7 +63,7 @@ def test():
     scores, targets = model.predict_fullset(dataset, "test")
     scores_ts = np.transpose(scores.asnumpyarray())
     targets_ts = np.transpose(targets.asnumpyarray())
-    model_no = sys.argv[1].split(".")[0][-1]
+    model_no = sys.argv[1].split(".")[0][-2:]
     prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no)
 
 if __name__ == '__main__':

@@ -10,12 +10,12 @@ import random
 from neon.datasets.dataset import Dataset
 import cProfile
 
-MOVIE_DIR = "/home/coreyesj/flyvflydata/Aggression/Aggression"
-#MOVIE_DIR = "/Users/jdc/flyvflydata/Aggression/Aggression"
+#MOVIE_DIR = "/home/coreyesj/flyvflydata/Aggression/Aggression"
+MOVIE_DIR = "/Users/jdc/flyvflydata/Aggression/Aggression"
 # Feature constants
-NUM_BINS = 30
+NUM_BINS = 1
 NUM_FRAMES = 3
-FEATURE_LENGTH = 2 * 17 * NUM_FRAMES * NUM_BINS
+FEATURE_LENGTH = 2 * 36 * NUM_FRAMES * NUM_BINS
 
 movie_nos = [1, 2, 3, 4, 5, 6, 7] # Not zero index
 train_nos = [0, 1, 2, 3, 4] # Zero indexed
@@ -106,7 +106,8 @@ def transform(trk_data, labels, window_length=3, stride=1,filterData=True):
         window = trk_data[:, i:(i+window_length), :]
         X[i, :] = np.reshape(window, (1, window.size))
         # Change bin binary data to relative position of 1
-        X[i, :] += relative_bin_offset
+	if NUM_BINS != 1:
+            X[i, :] += relative_bin_offset
     action_labels = labels[fly_no, action_no][:, 0:2]
     for i in xrange(0, len(action_labels)):
         start, stop = action_labels[i, :]
@@ -135,11 +136,12 @@ def filter_data(X, Y):
     return newX, newY
 
 def load_data():
-    min_range, max_range = find_ranges(use_trk=True)
+    min_range, max_range = find_ranges(use_trk=False)
     data = []
     for movie_no in movie_nos:
-        trk_data = discretize(read_tracking_data(movie_no, use_trk=True), min_range, max_range)
-        #trk_data = read_tracking_data(movie_no)[2]
+        #trk_data = discretize(read_tracking_data(movie_no, use_trk=False), min_range, max_range)
+	trk_data = read_tracking_data(movie_no, use_trk=False)
+	trk_data[np.isnan(trk_data)] = 0
         labels = read_labels(movie_no)[1]
         filterData = False
         if movie_no in train_nos:
@@ -191,7 +193,9 @@ class Fly(Dataset):
         self.format()
 
     def get_mini_batch(self, batch_idx):
-        batch_idx = random.randint(0, len(self.inputs['train']))
+        batch_idx = random.randint(0, len(self.inputs['train']) - 1)
+	if NUM_BINS == 1:
+	     return self.inputs['train'][batch_idx], self.targets['train'][batch_idx]
         cur_batch = self.inputs['train'][batch_idx].asnumpyarray()
         batch_size = cur_batch.shape[1]
         input_batch = np.zeros((FEATURE_LENGTH, batch_size))
@@ -260,6 +264,8 @@ class FlyPredict(Dataset):
 
     def get_mini_batch(self, batch_idx):
         cur_batch = self.inputs[self.use_set][batch_idx].asnumpyarray()
+	if NUM_BINS == 1:
+	     return self.inputs['train'][batch_idx], self.targets['train'][batch_idx]
         #print cur_batch
         batch_size = cur_batch.shape[1]
         # cur_batch = cur_batch[~np.isnan(cur_batch)]
