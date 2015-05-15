@@ -66,5 +66,7 @@ def test():
     model_no = sys.argv[1].split(".")[0][-2:]
     prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no)
 
+def visualize():
+    
 if __name__ == '__main__':
     test()

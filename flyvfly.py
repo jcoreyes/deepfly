@@ -15,9 +15,8 @@ from os.path import expanduser
 #MOVIE_DIR = "/home/coreyesj/flyvflydata/Aggression/Aggression"
 MOVIE_DIR = expanduser("~") + "/flyvflydata/Aggression/Aggression"
 # Feature constants
-NUM_BINS = 1
 NUM_FRAMES = 3
-FEATURE_LENGTH = 2 * 36 * NUM_FRAMES * NUM_BINS
+FEATURE_LENGTH = 1 * 36 * NUM_FRAMES
 
 movie_nos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # Not zero index
 train_nos = range(1,6) # Zero indexed
@@ -46,7 +45,7 @@ def read_labels(movie_no):
     matpath = "%s/movie%d/movie%d_actions.mat" %(MOVIE_DIR, movie_no, movie_no)
     matfile = scipy.io.loadmat(matpath,squeeze_me=False)
     action_names, action_labels = matfile['behs'], matfile['bouts']
-
+    print action_names
     return (action_names, action_labels)
 
 def transform(trk_data, labels, filterData, window_length=3, stride=1):
@@ -60,10 +59,11 @@ def transform(trk_data, labels, filterData, window_length=3, stride=1):
     Y = np.zeros((X.shape[0], 1))
     # Get window of tracking data over time
     for i in xrange(0, num_frames - window_length):
-        window = trk_data[:, i:(i+window_length), :]
+        window = trk_data[fly_no, i:(i+window_length), :]
         X[i, :] = np.reshape(window, (1, window.size))
-        # Change bin binary data to relative position of 1
     action_labels = labels[fly_no, action_no][:, 0:2]
+    # Action labels format: num_frames x 3: [start_frame, end_frame, 0/1 for if fly switched]
+    print labels[:, action_no]
     for i in xrange(0, len(action_labels)):
         start, stop = action_labels[i, :]
         Y[start:stop, 0] = 1
@@ -90,7 +90,7 @@ def filter_data(X, Y):
     newY[len(idx1):,0] = np.tile(Y[idx2, 0], (1, int(pos_frac)))
     return newX, newY
 
-def load_data(input_movie_nos, filterData):
+def load_data(input_movie_nos, filterData=None):
     data = []
     for movie_no in input_movie_nos:
         trk_data = read_tracking_data(movie_no)
@@ -119,7 +119,7 @@ class Fly(Dataset):
     def load(self):
         if self.inputs['train'] is not None:
             return
-        train_x, train_y = zip(*load_data(train_nos))
+        train_x, train_y = zip(*load_data(train_nos,filterData=True))
         self.inputs['train'] = np.vstack(train_x)
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
@@ -182,4 +182,4 @@ class FlyPredict(Dataset):
         return data[batch]
 
 if __name__ == '__main__':
-    load_data()
+    load_data(train_nos, filterData=True)
