@@ -17,14 +17,14 @@ MOVIE_DIR = expanduser("~") + "/flyvflydata/Aggression/Aggression"
 # Feature constants
 NUM_BINS = 1
 NUM_FRAMES = 3
-FEATURE_LENGTH = 2 * 33 * NUM_FRAMES * NUM_BINS
+FEATURE_LENGTH = 2 * 36 * NUM_FRAMES * NUM_BINS
 
 movie_nos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # Not zero index
-train_nos = [0, 1, 2, 3, 4] # Zero indexed
-test_nos = [5, 6, 7, 8, 9]
+train_nos = range(1,6) # Zero indexed
+test_nos = range(5,11)
 neg_frac = 0.5
 pos_frac = 4.0
-use_trk = True
+use_trk = False
 logger = logging.getLogger(__name__)
 
 def read_tracking_data(movie_no):
@@ -55,8 +55,8 @@ def transform(trk_data, labels, filterData, window_length=3, stride=1):
     num_frames, num_features = trk_data.shape[1:3]
     action_no = 0
     fly_no = 1
-    feature_length = 2 * num_features*window_length;
-    X = np.zeros((num_frames-window_length+1, feature_length))
+    X = np.zeros((num_frames-window_length+1, FEATURE_LENGTH))
+    print X.shape
     Y = np.zeros((X.shape[0], 1))
     # Get window of tracking data over time
     for i in xrange(0, num_frames - window_length):
@@ -93,8 +93,8 @@ def filter_data(X, Y):
 def load_data(input_movie_nos, filterData):
     data = []
     for movie_no in input_movie_nos:
-	    trk_data = read_tracking_data(movie_no)
-	    trk_data[np.isnan(trk_data)] = 0
+        trk_data = read_tracking_data(movie_no)
+        trk_data[np.isnan(trk_data)] = 0
         labels = read_labels(movie_no)[1]
         data.append(transform(trk_data, labels, filterData))
     return data
@@ -124,11 +124,10 @@ class Fly(Dataset):
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
         
-        neg_frag = 1.0
-        test_x, test_y = zip(*load_data(test_nos))
-        self.inputs['test'] = np.vstack(test_x)
-        self.targets['test'] = np.vstack(test_y)
-        print "Test Size: ", self.inputs['test'].shape
+        #test_x, test_y = zip(*load_data(test_nos))
+        #self.inputs['test'] = np.vstack(test_x)
+        #self.targets['test'] = np.vstack(test_y)
+        #print "Test Size: ", self.inputs['test'].shape
         self.format()
 
     def get_mini_batch(self, batch_idx):

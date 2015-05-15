@@ -35,7 +35,7 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no):
     plt.ylabel("Precision")
     plt.ylim([0.0, 1.05])
     plt.xlim([0.0, 1.0])
-    plt.legend(loc="center")
+    plt.legend(loc="lower left")
     plt.savefig('PRC_model' + model_no +'.png')
 
 def test():
