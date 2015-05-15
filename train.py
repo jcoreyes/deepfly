@@ -28,7 +28,7 @@ from neon.util.persist import deserialize
 MINIBATCH_SIZE = 30
 NUM_BINS = 1
 NUM_FRAMES = 3
-FEATURE_LENGTH = 2 * 17 * NUM_FRAMES * NUM_BINS
+FEATURE_LENGTH = 1 * 36 * NUM_FRAMES * NUM_BINS
 
 def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
     print 'initializing layers'
@@ -74,11 +74,10 @@ def train():
     if len(sys.argv) > 2:
         model = deserialize(sys.argv[2])
     else:
-        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[100, 50, 1])
+        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[200,100, 1])
         # define model
         model = MLP(num_epochs=1, batch_size=MINIBATCH_SIZE,
-                     layers=layers, epochs_complete=0,
-                     step_print=1000)
+                     layers=layers, epochs_complete=0)
         model.link()
         #be.configure(model, datapar=False, modelpar=False)
         model.initialize(be)
@@ -99,7 +98,6 @@ def train():
         print "At macro epoch %d" %i
         model.epochs_complete = 0
         model.fit(dataset)
-        model.print_layers()
         serialize(model, save_file)
 
 if __name__ == '__main__':

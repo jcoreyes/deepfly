@@ -22,7 +22,7 @@ movie_nos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # Not zero index
 train_nos = range(1,6) # Zero indexed
 test_nos = range(5,11)
 neg_frac = 0.6
-pos_frac = 4.0
+pos_frac = 20.0
 use_trk = False
 logger = logging.getLogger(__name__)
 
@@ -92,8 +92,8 @@ def load_data(input_movie_nos, filter_flag=None):
         trk_data = read_tracking_data(movie_no)
         trk_data[np.isnan(trk_data)] = 0
         labels = read_labels(movie_no)[1]
-        data.append(transform(trk_data, labels, fly_no = 0, filter_flag))
-        data.append(transform(trk_data, labels, fly_no = 1, filter_flag))
+        data.append(transform(trk_data, labels, filter_flag, fly_no = 0))
+        data.append(transform(trk_data, labels, filter_flag, fly_no = 1))
     return data
 
 
@@ -156,6 +156,7 @@ class FlyPredict(Dataset):
     def load(self):
         if self.inputs['train'] is not None:
             return
+        global pos_frac
         pos_frac = 1.0
         train_x, train_y = zip(*load_data(train_nos, filter_flag=True))
         self.inputs['train'] = np.vstack(train_x)
