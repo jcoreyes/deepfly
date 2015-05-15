@@ -21,7 +21,7 @@ FEATURE_LENGTH = 1 * 36 * NUM_FRAMES
 movie_nos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # Not zero index
 train_nos = range(1,6) # Zero indexed
 test_nos = range(5,11)
-neg_frac = 0.5
+neg_frac = 0.6
 pos_frac = 4.0
 use_trk = False
 logger = logging.getLogger(__name__)
@@ -45,17 +45,14 @@ def read_labels(movie_no):
     matpath = "%s/movie%d/movie%d_actions.mat" %(MOVIE_DIR, movie_no, movie_no)
     matfile = scipy.io.loadmat(matpath,squeeze_me=False)
     action_names, action_labels = matfile['behs'], matfile['bouts']
-    print action_names
     return (action_names, action_labels)
 
-def transform(trk_data, labels, filterData, window_length=3, stride=1):
+def transform(trk_data, labels, filter_flag, fly_no=None, window_length=3, stride=1):
     """Get sliding window of frames from tracking data"""
 
     num_frames, num_features = trk_data.shape[1:3]
     action_no = 0
-    fly_no = 1
     X = np.zeros((num_frames-window_length+1, FEATURE_LENGTH))
-    print X.shape
     Y = np.zeros((X.shape[0], 1))
     # Get window of tracking data over time
     for i in xrange(0, num_frames - window_length):
@@ -63,11 +60,10 @@ def transform(trk_data, labels, filterData, window_length=3, stride=1):
         X[i, :] = np.reshape(window, (1, window.size))
     action_labels = labels[fly_no, action_no][:, 0:2]
     # Action labels format: num_frames x 3: [start_frame, end_frame, 0/1 for if fly switched]
-    print labels[:, action_no]
     for i in xrange(0, len(action_labels)):
         start, stop = action_labels[i, :]
         Y[start:stop, 0] = 1
-    if filterData:
+    if filter_flag:
         X, Y = filter_data(X, Y)
     return X, Y
 
@@ -90,13 +86,14 @@ def filter_data(X, Y):
     newY[len(idx1):,0] = np.tile(Y[idx2, 0], (1, int(pos_frac)))
     return newX, newY
 
-def load_data(input_movie_nos, filterData=None):
+def load_data(input_movie_nos, filter_flag=None):
     data = []
     for movie_no in input_movie_nos:
         trk_data = read_tracking_data(movie_no)
         trk_data[np.isnan(trk_data)] = 0
         labels = read_labels(movie_no)[1]
-        data.append(transform(trk_data, labels, filterData))
+        data.append(transform(trk_data, labels, fly_no = 0, filter_flag))
+        data.append(transform(trk_data, labels, fly_no = 1, filter_flag))
     return data
 
 
@@ -119,7 +116,7 @@ class Fly(Dataset):
     def load(self):
         if self.inputs['train'] is not None:
             return
-        train_x, train_y = zip(*load_data(train_nos,filterData=True))
+        train_x, train_y = zip(*load_data(train_nos,filter_flag=True))
         self.inputs['train'] = np.vstack(train_x)
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
@@ -160,12 +157,12 @@ class FlyPredict(Dataset):
         if self.inputs['train'] is not None:
             return
         pos_frac = 1.0
-        train_x, train_y = zip(*load_data(train_nos, filterData=True))
+        train_x, train_y = zip(*load_data(train_nos, filter_flag=True))
         self.inputs['train'] = np.vstack(train_x)
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
         
-        test_x, test_y = zip(*load_data(test_nos, filterData=False))
+        test_x, test_y = zip(*load_data(test_nos, filter_flag=False))
         self.inputs['test'] = np.vstack(test_x)
         self.targets['test'] = np.vstack(test_y)
         print "Test Size: ", self.inputs['test'].shape
@@ -182,4 +179,4 @@ class FlyPredict(Dataset):
         return data[batch]
 
 if __name__ == '__main__':
-    load_data(train_nos, filterData=True)
+    load_data(train_nos, filter_flag=True)
