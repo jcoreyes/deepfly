@@ -31,7 +31,8 @@ from neon.util.persist import deserialize
 
 MINIBATCH_SIZE = 30
 NUM_FRAMES = 3
-FEATURE_LENGTH = 36 * NUM_FRAMES
+USE_BOTH = True
+FEATURE_LENGTH = (USE_BOTH+1) * 36 * NUM_FRAMES
 
 def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
     print 'initializing layers'
@@ -109,6 +110,7 @@ def train():
     max_macro_epochs = 1000
     for i in range(max_macro_epochs):
         model.epochs_complete = 0
+        dataset.use_set = "train"
         model.fit(dataset)
         #scores, targets = model.predict_fullset(dataset, "validation")
         logger.info('epoch: %d,  valid error: %0.9f', i, get_validation(model, dataset))

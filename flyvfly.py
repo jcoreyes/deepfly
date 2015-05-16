@@ -19,9 +19,9 @@ USE_BOTH = True # Whether to use both fly's data for the same data point
 FEATURE_LENGTH = (USE_BOTH+1) * 36 * NUM_FRAMES
 
 movie_nos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-train_nos = range(1,2) # Zero indexed
+train_nos = range(1,6) # Zero indexed
 validation_nos = [6]
-test_nos = range(5,11)
+test_nos = range(6,11)
 neg_frac = 0.6
 pos_frac = 20.0
 use_trk = False
@@ -141,6 +141,8 @@ class Fly(Dataset):
 
     def get_mini_batch(self, batch_idx):
         if self.use_set == 'validation':
+            #print(len(self.inputs['validation'))
+            #print batch_idx
             return self.inputs[self.use_set][batch_idx], self.targets[self.use_set][batch_idx]
         batch_idx = random.randint(0, len(self.inputs['train']) - 1)
     	return self.inputs['train'][batch_idx], self.targets['train'][batch_idx]
