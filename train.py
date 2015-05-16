@@ -2,17 +2,21 @@ import os
 import logging
 import math
 import sys
-
+import numpy as np
 logging.basicConfig(level=20,
                     format='%(asctime)-15s %(levelname)s:%(module)s - %(message)s')
 logger = logging.getLogger('thread example')
 
 # neon specific imports
 from neon.backends.cpu import CPU
-from neon.backends.cc2 import GPU
+try:
+    from neon.backends.cc2 import GPU
+    be = GPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
+      actual_batch_size=30)
+except ImportError:
+    be = CPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
+      actual_batch_size=30)
 from neon.backends.par import NoPar
-be = GPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
-  actual_batch_size=30)
 from neon.layers import FCLayer, DataLayer, CostLayer
 from neon.models.mlp import MLP
 from neon.params.val_init import NodeNormalizedValGen
@@ -26,9 +30,8 @@ from neon.util.persist import serialize
 from neon.util.persist import deserialize
 
 MINIBATCH_SIZE = 30
-NUM_BINS = 1
 NUM_FRAMES = 3
-FEATURE_LENGTH = 1 * 36 * NUM_FRAMES * NUM_BINS
+FEATURE_LENGTH = 36 * NUM_FRAMES
 
 def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
     print 'initializing layers'
@@ -67,6 +70,15 @@ def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
                             cost=CrossEntropy()))
     return layers
 
+def get_validation(model, dataset):
+    model.data_layer.use_set('validation', predict=True)
+    dataset.use_set = 'validation'
+    estim, targets = map(lambda x: x.asnumpyarray(), model.predict_fullset(dataset, "validation"))
+    estim[estim>0.5] = 1
+    estim[estim<=0.5] = 0
+    val_err = np.sum(estim != targets) / float(estim.shape[1])
+    return val_err
+
 
 def train():
 
@@ -83,6 +95,7 @@ def train():
         model.initialize(be)
         model.data_layer = model.layers[0]
         model.cost_layer = model.layers[-1]
+
     dataset = Fly(backend=be,
                     repo_path=os.path.expanduser('~/flyvfly/'))
     
@@ -95,9 +108,10 @@ def train():
 
     max_macro_epochs = 1000
     for i in range(max_macro_epochs):
-        print "At macro epoch %d" %i
         model.epochs_complete = 0
         model.fit(dataset)
+        #scores, targets = model.predict_fullset(dataset, "validation")
+        logger.info('epoch: %d,  valid error: %0.9f', i, get_validation(model, dataset))
         serialize(model, save_file)
 
 if __name__ == '__main__':

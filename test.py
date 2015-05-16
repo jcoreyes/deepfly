@@ -6,6 +6,7 @@ from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import auc
 import pylab as plt
 import sys
+import matplotlib.cm as cm
 
 logging.basicConfig(level=20,
                     format='%(asctime)-15s %(levelname)s:%(module)s - %(message)s')
@@ -13,10 +14,15 @@ logger = logging.getLogger('thread example')
 
 # neon specific imports
 from neon.backends.cpu import CPU
-from neon.backends.cc2 import GPU
+try:
+    from neon.backends.cc2 import GPU
+    be = GPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
+      actual_batch_size=30)
+except ImportError:
+    be = CPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
+      actual_batch_size=30)
+
 from neon.backends.par import NoPar
-be = GPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
-  actual_batch_size=30)
 from neon.models.mlp import MLP
 from flyvfly import FlyPredict
 from neon.util.persist import deserialize
@@ -41,8 +47,7 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no):
     plt.savefig('PRC_model' + model_no +'.png')
 
 def test():
-    with open(sys.argv[1], 'r') as f:
-        model = deserialize(f)
+
     model.print_layers()
     dataset = FlyPredict(backend=be)
 
@@ -70,6 +75,19 @@ def test():
     prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no)
 
 def visualize():
-    pass    
+    weights = model.layers[-2].weights.asnumpyarray()
+    plt.subplot(1, 2, 1)
+    plt.imshow(np.transpose(np.sort(abs(model.layers[-2].weights.asnumpyarray()))), cmap = cm.Greys_r)
+    plt.subplot(1, 2, 2)
+    plt.imshow(np.sort(np.transpose(abs(model.layers[-3].weights.asnumpyarray()))), cmap = cm.Greys_r)
+    plt.show()
+
+    weights_sort = weights.argsort()
+    max_weights = weights[0, weights_sort[0, -5:]]
+    min_weights = weights[0, weights_sort[0, 0:5]]
+    print min_weights
 if __name__ == '__main__':
-    test()
+    with open(sys.argv[1], 'r') as f:
+        model = deserialize(f)
+    visualize()
+    #test()

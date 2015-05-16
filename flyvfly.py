@@ -11,15 +11,16 @@ from neon.datasets.dataset import Dataset
 import cProfile
 import matplotlib.pyplot as plt
 from os.path import expanduser
-
-#MOVIE_DIR = "/home/coreyesj/flyvflydata/Aggression/Aggression"
+import numpy as np
 MOVIE_DIR = expanduser("~") + "/flyvflydata/Aggression/Aggression"
 # Feature constants
-NUM_FRAMES = 3
-FEATURE_LENGTH = 1 * 36 * NUM_FRAMES
+NUM_FRAMES = 3 # Number of contig. frames to consider for 1 data point
+USE_BOTH = True # Whether to use both fly's data for the same data point
+FEATURE_LENGTH = (USE_BOTH+1) * 36 * NUM_FRAMES
 
-movie_nos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # Not zero index
-train_nos = range(1,6) # Zero indexed
+movie_nos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+train_nos = range(1,2) # Zero indexed
+validation_nos = [6]
 test_nos = range(5,11)
 neg_frac = 0.6
 pos_frac = 20.0
@@ -56,8 +57,15 @@ def transform(trk_data, labels, filter_flag, fly_no=None, window_length=3, strid
     Y = np.zeros((X.shape[0], 1))
     # Get window of tracking data over time
     for i in xrange(0, num_frames - window_length):
-        window = trk_data[fly_no, i:(i+window_length), :]
-        X[i, :] = np.reshape(window, (1, window.size))
+        if USE_BOTH:
+            window = trk_data[:, i:(i+window_length), :]
+            if fly_no == 0:
+                X[i, :] = np.reshape(window, (1, window.size))
+            else:
+                X[i, :] = np.fliplr(np.reshape(window, (1, window.size)))
+        else:    
+            window = trk_data[fly_no, i:(i+window_length), :]
+            X[i, :] = np.reshape(window, (1, window.size))
     action_labels = labels[fly_no, action_no][:, 0:2]
     # Action labels format: num_frames x 3: [start_frame, end_frame, 0/1 for if fly switched]
     for i in xrange(0, len(action_labels)):
@@ -106,6 +114,7 @@ class Fly(Dataset):
         self.macro_batched = False
         self.dist_flag = False
         self.num_test_sample = 10000
+        self.use_set = "train"
         self.__dict__.update(kwargs)
         if self.dist_flag:
             raise NotImplementedError("Dist not yet implemented for Fly")
@@ -120,7 +129,10 @@ class Fly(Dataset):
         self.inputs['train'] = np.vstack(train_x)
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
-        
+        validation_x, validation_y = zip(*load_data(validation_nos,filter_flag=False))
+        self.inputs['validation'] = np.vstack(validation_x)
+        self.targets['validation'] = np.vstack(validation_y)
+        print "Validation size: ", self.inputs['validation'].shape
         #test_x, test_y = zip(*load_data(test_nos))
         #self.inputs['test'] = np.vstack(test_x)
         #self.targets['test'] = np.vstack(test_y)
@@ -128,6 +140,8 @@ class Fly(Dataset):
         self.format()
 
     def get_mini_batch(self, batch_idx):
+        if self.use_set == 'validation':
+            return self.inputs[self.use_set][batch_idx], self.targets[self.use_set][batch_idx]
         batch_idx = random.randint(0, len(self.inputs['train']) - 1)
     	return self.inputs['train'][batch_idx], self.targets['train'][batch_idx]
 
