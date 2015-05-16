@@ -108,13 +108,17 @@ def train():
     be.par.backend = be
 
     max_macro_epochs = 1000
+    min_err = sys.maxint
     for i in range(max_macro_epochs):
         model.epochs_complete = 0
         dataset.use_set = "train"
         model.fit(dataset)
         #scores, targets = model.predict_fullset(dataset, "validation")
-        logger.info('epoch: %d,  valid error: %0.9f', i, get_validation(model, dataset))
-        serialize(model, save_file)
+        val_err = get_validation(model, dataset)
+        logger.info('epoch: %d,  valid error: %0.9f', i, val_err)
+        if val_err < min_err:
+            serialize(model, save_file)
+            min_err = val_err
 
 if __name__ == '__main__':
     train()
