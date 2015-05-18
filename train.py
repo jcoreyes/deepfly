@@ -25,14 +25,15 @@ from neon.transforms.linear import Linear
 from neon.transforms.logistic import Logistic
 from neon.transforms.cross_entropy import CrossEntropy
 from neon.optimizers import GradientDescentMomentum
-from flyvfly import Fly
+from flyvflymulticlass import Fly
 from neon.util.persist import serialize
 from neon.util.persist import deserialize
 
 MINIBATCH_SIZE = 30
-NUM_FRAMES = 3
-USE_BOTH = True
-FEATURE_LENGTH = (USE_BOTH+1) * 36 * NUM_FRAMES
+WINDOW_LENGTH = 3
+USE_BOTH = False
+FEATURE_LENGTH = (USE_BOTH+1) * 36 * WINDOW_LENGTH
+NUM_CLASSES = 6
 
 def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
     print 'initializing layers'
@@ -61,7 +62,7 @@ def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
                                   activation=Logistic()))
         else:
             layers.append(FCLayer(name='h' + str(l),
-                                  nout=1,
+                                  nout=n_hidden_units[l],
                                   lrule_init=gdmwd,
                                   weight_init=wt_init1,
                                   activation=Logistic()))
@@ -74,6 +75,7 @@ def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
 def get_validation(model, dataset):
     model.data_layer.use_set('validation', predict=True)
     dataset.use_set = 'validation'
+    model.predict_fullset(dataset, "validation")
     estim, targets = map(lambda x: x.asnumpyarray(), model.predict_fullset(dataset, "validation"))
     estim[estim>0.5] = 1
     estim[estim<=0.5] = 0
@@ -87,7 +89,7 @@ def train():
     if len(sys.argv) > 2:
         model = deserialize(sys.argv[2])
     else:
-        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[200,100, 1])
+        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[200,100, NUM_CLASSES])
         # define model
         model = MLP(num_epochs=1, batch_size=MINIBATCH_SIZE,
                      layers=layers, epochs_complete=0)
@@ -115,7 +117,7 @@ def train():
         model.fit(dataset)
         #scores, targets = model.predict_fullset(dataset, "validation")
         val_err = get_validation(model, dataset)
-        logger.info('epoch: %d,  valid error: %0.9f', i, val_err)
+        logger.info('epoch: %d,  valid error: %0.6f', i, val_err)
         if val_err < min_err:
             serialize(model, save_file)
             min_err = val_err

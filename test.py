@@ -24,7 +24,7 @@ except ImportError:
 
 from neon.backends.par import NoPar
 from neon.models.mlp import MLP
-from flyvfly import FlyPredict
+from flyvflymulticlass import FlyPredict
 from neon.util.persist import deserialize
 
 def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no):

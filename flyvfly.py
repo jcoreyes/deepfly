@@ -52,9 +52,7 @@ def transform(trk_data, labels, filter_flag, fly_no=None, window_length=3, strid
     """Get sliding window of frames from tracking data"""
 
     num_frames, num_features = trk_data.shape[1:3]
-    action_no = 0
     X = np.zeros((num_frames-window_length+1, FEATURE_LENGTH))
-    Y = np.zeros((X.shape[0], 1))
     # Get window of tracking data over time
     for i in xrange(0, num_frames - window_length):
         if USE_BOTH:
@@ -66,8 +64,12 @@ def transform(trk_data, labels, filter_flag, fly_no=None, window_length=3, strid
         else:    
             window = trk_data[fly_no, i:(i+window_length), :]
             X[i, :] = np.reshape(window, (1, window.size))
+
+    action_no = 0
+    Y = np.zeros((X.shape[0], 1))
+    # Action labels format: num_frames x 3: [start_frame, end_frame, 0/1 for if fly switched]            
     action_labels = labels[fly_no, action_no][:, 0:2]
-    # Action labels format: num_frames x 3: [start_frame, end_frame, 0/1 for if fly switched]
+
     for i in xrange(0, len(action_labels)):
         start, stop = action_labels[i, :]
         Y[start:stop, 0] = 1
