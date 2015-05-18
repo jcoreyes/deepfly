@@ -19,7 +19,7 @@ USE_BOTH = False # Whether to use both fly's data for the same data point
 FEATURE_LENGTH = (USE_BOTH+1) * 36 * WINDOW_LENGTH
 
 movie_nos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-train_nos = range(6) # Zero indexed
+train_nos = range(1, 6) # Zero indexed
 validation_nos = [6]
 test_nos = range(6,11)
 neg_frac = 0.6

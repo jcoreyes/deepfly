@@ -38,22 +38,23 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no):
     for i in range(NUM_CLASSES):
         precision_ts, recall_ts, thresholds = precision_recall_curve(targets_ts[:,i], scores_ts[:,i], pos_label=1)
         precision_tr, recall_tr, thresholds = precision_recall_curve(targets_tr[:,i], scores_tr[:,i], pos_label=1)
-        area_ts = 1 #auc(recall_ts, precision_ts)
-        area_tr = 1 #auc(recall_tr, precision_tr)
+        area_ts = auc(recall_ts, precision_ts)
+        area_tr = auc(recall_tr, precision_tr)
         print precision_ts[len(precision_ts)-5:]
         print precision_tr[len(precision_tr)-5:]
         plt.plot(recall_ts, precision_ts, '--',label="%s test AUC: %0.4f" %(classes[i], area_ts), 
             color=colors[i])
         plt.plot(recall_tr, precision_tr, label="%s train AUC: %0.4f" %(classes[i],area_tr),
             color=colors[i])
-    plt.title('Precision Recall of Model ' + model_no)
+    plt.title('Precision Recall of MC Model ' + model_no)
     plt.xlabel("Recall")
     plt.ylabel("Precision")
     plt.ylim([0.0, 1.05])
     plt.xlim([0.0, 1.0])
-    plt.legend(loc="center", prop={'size':12})
+    plt.legend(loc="lower left", prop={'size':8})
     plt.grid(b=True, which='major')
-    plt.show()
+    figure = plt.gcf()
+    figure.set_size_inches(8, 6)
     plt.savefig('PRC_mc_model' + model_no +'.png')
 
 def test():
