@@ -104,7 +104,7 @@ def visualize():
             max_input[w].sort(key=lambda x:x[1], reverse=True)
             frame_idx = [x[0] for x in max_input[w][0:5]]
             for frame in frame_idx:
-                f.write("m%d f%d " %(int(frame/float(points_per_vid))+1, frame %points_per_vid))
+                f.write("m%d f%d " %(int(frame/float(points_per_vid))+1, int((frame %points_per_vid)/2.0)))
             f.write("\n")
 
 if __name__ == '__main__':
