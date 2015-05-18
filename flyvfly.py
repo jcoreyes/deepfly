@@ -15,13 +15,13 @@ import numpy as np
 MOVIE_DIR = expanduser("~") + "/flyvflydata/Aggression/Aggression"
 # Feature constants
 NUM_FRAMES = 3 # Number of contig. frames to consider for 1 data point
-USE_BOTH = True # Whether to use both fly's data for the same data point
+USE_BOTH = False # Whether to use both fly's data for the same data point
 FEATURE_LENGTH = (USE_BOTH+1) * 36 * NUM_FRAMES
 
 movie_nos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 train_nos = range(1,6) # Zero indexed
 validation_nos = [6]
-test_nos = range(6,11)
+test_nos = range(6,7)
 neg_frac = 0.6
 pos_frac = 20.0
 use_trk = False
@@ -50,7 +50,6 @@ def read_labels(movie_no):
 
 def transform(trk_data, labels, filter_flag, fly_no=None, window_length=3, stride=1):
     """Get sliding window of frames from tracking data"""
-
     num_frames, num_features = trk_data.shape[1:3]
     X = np.zeros((num_frames-window_length+1, FEATURE_LENGTH))
     # Get window of tracking data over time
@@ -115,7 +114,6 @@ class Fly(Dataset):
     def __init__(self, **kwargs):
         self.macro_batched = False
         self.dist_flag = False
-        self.num_test_sample = 10000
         self.use_set = "train"
         self.__dict__.update(kwargs)
         if self.dist_flag:
@@ -162,7 +160,6 @@ class FlyPredict(Dataset):
     def __init__(self, **kwargs):
         self.macro_batched = False
         self.dist_flag = False
-        self.num_test_sample = 10000
         self.use_set = "train"
         self.__dict__.update(kwargs)
         if self.dist_flag:
@@ -176,7 +173,7 @@ class FlyPredict(Dataset):
             return
         global pos_frac
         pos_frac = 1.0
-        train_x, train_y = zip(*load_data(train_nos, filter_flag=True))
+        train_x, train_y = zip(*load_data(train_nos, filter_flag=False))
         self.inputs['train'] = np.vstack(train_x)
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape

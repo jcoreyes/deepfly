@@ -24,7 +24,7 @@ except ImportError:
 
 from neon.backends.par import NoPar
 from neon.models.mlp import MLP
-from flyvflymulticlass import FlyPredict
+from flyvfly import FlyPredict
 from neon.util.persist import deserialize
 
 def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no):
@@ -47,17 +47,6 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no):
     plt.savefig('PRC_model' + model_no +'.png')
 
 def test():
-
-    model.print_layers()
-    dataset = FlyPredict(backend=be)
-
-    # par related init
-    be.actual_batch_size = model.batch_size
-    be.mpi_size = 1
-    be.mpi_rank = 0
-    be.par = NoPar()
-    be.par.backend = be
-
     # for set_name in ['test', 'train']:
     model.data_layer.init_dataset(dataset)
     model.data_layer.use_set('train', predict=True)
@@ -78,16 +67,59 @@ def visualize():
     weights = model.layers[-2].weights.asnumpyarray()
     plt.subplot(1, 2, 1)
     plt.imshow(np.transpose(np.sort(abs(model.layers[-2].weights.asnumpyarray()))), cmap = cm.Greys_r)
-    plt.subplot(1, 2, 2)
-    plt.imshow(np.sort(np.transpose(abs(model.layers[-3].weights.asnumpyarray()))), cmap = cm.Greys_r)
-    plt.show()
-
+    #plt.subplot(1, 2, 2)
+    #plt.imshow(np.sort(np.transpose(abs(model.layers[-3].weights.asnumpyarray()))), cmap = cm.Greys_r)
+    #plt.show()
+    NUM_W = 5
     weights_sort = weights.argsort()
-    max_weights = weights[0, weights_sort[0, -5:]]
-    min_weights = weights[0, weights_sort[0, 0:5]]
+    max_weights = weights[0, weights_sort[0, -NUM_W:]]
+    min_weights = weights[0, weights_sort[0, 0:NUM_W]]
+    max_weights_index = weights_sort[0, -NUM_W:].tolist()
+    max_weights_index += weights_sort[0, 0:NUM_W].tolist()
+    print "Max and min weights"
+    print max_weights
     print min_weights
+    print "Max and min weights index", max_weights_index
+    assert len(max_weights_index) == NUM_W*2
+    model.data_layer.init_dataset(dataset)
+    model.data_layer.use_set('train', predict=True)
+    batch = 0
+    max_input = [[] for x in range(NUM_W*2)]
+
+    #print model.layers[-3].pre_act.shape
+    for batch_preds, batch_refs in model.predict_generator(dataset,
+                                                          'train'):
+        start = batch * model.batch_size
+        end = start + model.batch_size
+        output = model.get_classifier_output()
+        # Prev output shape is num_neurons x batch_size so each row is 1 neuron
+        prev = model.layers[-3].pre_act.asnumpyarray()[max_weights_index, :]
+        curr_max_input = (np.argmax(prev, axis=1) + batch*30, np.amax(prev, axis=1))
+        for w in range(NUM_W*2):
+            max_input[w].append((curr_max_input[0][w], curr_max_input[1][w]))
+        batch += 1
+    points_per_vid = 54000*2
+    with open('max_input.txt', 'w') as f:       
+        for w in range(NUM_W*2):
+            max_input[w].sort(key=lambda x:x[1], reverse=True)
+            frame_idx = [x[0] for x in max_input[w][0:5]]
+            for frame in frame_idx:
+                f.write("m%d f%d " %(int(frame/float(points_per_vid))+1, frame %points_per_vid))
+            f.write("\n")
+
 if __name__ == '__main__':
     with open(sys.argv[1], 'r') as f:
         model = deserialize(f)
-    #visualize()
-    test()
+
+
+    model.print_layers()
+    # par related init
+    be.actual_batch_size = model.batch_size
+    be.mpi_size = 1
+    be.mpi_rank = 0
+    be.par = NoPar()
+    be.par.backend = be
+
+    dataset = FlyPredict(backend=be)
+    visualize()
+    #test()
