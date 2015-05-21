@@ -25,7 +25,7 @@ from neon.transforms.linear import Linear
 from neon.transforms.logistic import Logistic
 from neon.transforms.cross_entropy import CrossEntropy
 from neon.optimizers import GradientDescentMomentum
-from flyvflymulticlass import Fly
+from flyvfly import Fly
 from neon.util.persist import serialize
 from neon.util.persist import deserialize
 

@@ -12,6 +12,8 @@ import cProfile
 import matplotlib.pyplot as plt
 from os.path import expanduser
 import numpy as np
+from sklearn import preprocessing
+
 MOVIE_DIR = expanduser("~") + "/flyvflydata/Aggression/Aggression"
 # Feature constants
 NUM_FRAMES = 3 # Number of contig. frames to consider for 1 data point
@@ -101,9 +103,33 @@ def load_data(input_movie_nos, filter_flag=None):
         trk_data = read_tracking_data(movie_no)
         trk_data[np.isnan(trk_data)] = 0
         labels = read_labels(movie_no)[1]
+        standard(trk_data)
         data.append(transform(trk_data, labels, filter_flag, fly_no = 0))
         data.append(transform(trk_data, labels, filter_flag, fly_no = 1))
     return data
+
+def standard(trk_data):
+    means = np.loadtxt("means.txt")
+    for fly_no in range(2):
+        scaler = preprocessing.StandardScaler()
+        scaler.mean_ = means[fly_no]
+        scaler.std_ = means[fly_no + 2]
+        trk_data[fly_no, :, :] = scaler.transform(trk_data[fly_no, :, :])
+
+
+def find_means():
+    data = []
+    for movie_no in train_nos:
+        trk_data = read_tracking_data(movie_no)
+        trk_data[np.isnan(trk_data)] = 0
+        data.append(trk_data)
+    train_x = np.hstack(data)
+    scalers = []
+    for fly_no in range(2):
+        scalers.append(preprocessing.StandardScaler().fit(train_x[fly_no, :, :]))
+    means = [x.mean_ for x in scalers]
+    means += [x.std_ for x in scalers]
+    np.savetxt("means.txt", np.asarray(means))
 
 
 class Fly(Dataset):
@@ -195,4 +221,4 @@ class FlyPredict(Dataset):
         return data[batch]
 
 if __name__ == '__main__':
-    load_data(train_nos, filter_flag=True)
+    find_means()
