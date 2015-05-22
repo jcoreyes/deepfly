@@ -65,10 +65,15 @@ def test():
 
 def visualize():
     weights = model.layers[-2].weights.asnumpyarray()
-    plt.subplot(1, 2, 1)
-    plt.imshow(np.transpose(np.sort(abs(model.layers[-2].weights.asnumpyarray()))), cmap = cm.Greys_r)
+    np.savetxt("model23weights2.txt", weights)
+    np.savetxt("model23weights1.txt", model.layers[-3].weights.asnumpyarray())
+    #plt.subplot(1, 2, 1)
+    #plt.imshow(np.transpose(abs(model.layers[-2].weights.asnumpyarray())), cmap = cm.Greys_r)
     #plt.subplot(1, 2, 2)
-    #plt.imshow(np.sort(np.transpose(abs(model.layers[-3].weights.asnumpyarray()))), cmap = cm.Greys_r)
+    plt.imshow(abs(model.layers[-3].weights.asnumpyarray()), cmap = cm.Greys_r)
+    plt.xlabel("Input Index")
+    plt.ylabel("NN Unit")
+    plt.savefig('weights.png', bbox_inches='tight');
     #plt.show()
     NUM_W = 5
     weights_sort = weights.argsort()
@@ -81,13 +86,12 @@ def visualize():
     print min_weights
     print "Max and min weights index", max_weights_index
     assert len(max_weights_index) == NUM_W*2
-    print weights.shape
-    print 
+    print "Weight shape", weights.shape
     model.data_layer.init_dataset(dataset)
     model.data_layer.use_set('train', predict=True)
     batch = 0
     max_input = [[] for x in range(NUM_W*2)]
-    print model.layers[-3].pre_act.asnumpyarray().shape
+    print "Prec act shape", model.layers[-3].pre_act.asnumpyarray().shape
     #print model.layers[-3].pre_act.shape
     for batch_preds, batch_refs in model.predict_generator(dataset,
                                                           'train'):
@@ -98,9 +102,11 @@ def visualize():
 
         prev = model.layers[-3].pre_act.asnumpyarray()[max_weights_index, :]
         curr_max_input = (np.argmax(prev, axis=1) + batch*30, np.amax(prev, axis=1))
+        #print curr_max_input[0].shape
         for w in range(NUM_W*2):
             max_input[w].append((curr_max_input[0][w], curr_max_input[1][w]))
         batch += 1
+    print batch
     points_per_vid = 54000*2
     with open('max_input2.txt', 'w') as f:       
         for w in range(NUM_W*2):

@@ -33,7 +33,7 @@ MINIBATCH_SIZE = 30
 WINDOW_LENGTH = 3
 USE_BOTH = False
 FEATURE_LENGTH = (USE_BOTH+1) * 36 * WINDOW_LENGTH
-NUM_CLASSES = 6
+NUM_CLASSES = 1
 
 def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
     print 'initializing layers'
@@ -48,7 +48,7 @@ def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
     # 3x updates/mb
     gdmwd = {'type': 'gradient_descent_momentum',
              'lr_params': {'learning_rate': 0.005, 'backend': be,
-                            'weight_decay': 1.0,
+                            'weight_decay': 10.0,
                            'momentum_params': {'type': 'constant', 'coef': 0.9}}}
     dataLayer = DataLayer(name='d0', nout=n_in)
     layers = []
@@ -89,7 +89,7 @@ def train():
     if len(sys.argv) > 2:
         model = deserialize(sys.argv[2])
     else:
-        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[200,100, NUM_CLASSES])
+        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[100, NUM_CLASSES])
         # define model
         model = MLP(num_epochs=1, batch_size=MINIBATCH_SIZE,
                      layers=layers, epochs_complete=0)

@@ -23,7 +23,7 @@ FEATURE_LENGTH = (USE_BOTH+1) * 36 * NUM_FRAMES
 movie_nos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 train_nos = range(1,6) # Zero indexed
 validation_nos = [6]
-test_nos = range(6,7)
+test_nos = range(6,11)
 neg_frac = 0.6
 pos_frac = 20.0
 use_trk = False
@@ -155,7 +155,7 @@ class Fly(Dataset):
         self.inputs['train'] = np.vstack(train_x)
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
-        validation_x, validation_y = zip(*load_data(validation_nos,filter_flag=False))
+        validation_x, validation_y = zip(*load_data(validation_nos,filter_flag=True))
         self.inputs['validation'] = np.vstack(validation_x)
         self.targets['validation'] = np.vstack(validation_y)
         print "Validation size: ", self.inputs['validation'].shape
@@ -199,7 +199,7 @@ class FlyPredict(Dataset):
             return
         global pos_frac
         pos_frac = 1.0
-        train_x, train_y = zip(*load_data(train_nos, filter_flag=False))
+        train_x, train_y = zip(*load_data(train_nos, filter_flag=True))
         self.inputs['train'] = np.vstack(train_x)
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
