@@ -33,7 +33,7 @@ MINIBATCH_SIZE = 30
 WINDOW_LENGTH = 3
 USE_BOTH = False
 FEATURE_LENGTH = (USE_BOTH+1) * 36 * WINDOW_LENGTH
-NUM_CLASSES = 1
+NUM_CLASSES = 6
 
 def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
     print 'initializing layers'
@@ -75,7 +75,6 @@ def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
 def get_validation(model, dataset):
     model.data_layer.use_set('validation', predict=True)
     dataset.use_set = 'validation'
-    model.predict_fullset(dataset, "validation")
     estim, targets = map(lambda x: x.asnumpyarray(), model.predict_fullset(dataset, "validation"))
     estim[estim>0.5] = 1
     estim[estim<=0.5] = 0
@@ -89,7 +88,7 @@ def train():
     if len(sys.argv) > 2:
         model = deserialize(sys.argv[2])
     else:
-        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[100, NUM_CLASSES])
+        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[80, 50, NUM_CLASSES])
         # define model
         model = MLP(num_epochs=1, batch_size=MINIBATCH_SIZE,
                      layers=layers, epochs_complete=0)
@@ -118,7 +117,7 @@ def train():
         #scores, targets = model.predict_fullset(dataset, "validation")
         val_err = get_validation(model, dataset)
         logger.info('epoch: %d,  valid error: %0.6f', i, val_err)
-        if val_err < min_err:
+        if True or val_err < min_err:
             serialize(model, save_file)
             min_err = val_err
 

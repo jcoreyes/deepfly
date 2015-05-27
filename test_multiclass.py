@@ -29,6 +29,11 @@ from neon.util.persist import deserialize
 
 NUM_CLASSES = 6
 
+def compute_f1(precision, recall):
+    f1 = 2*precision*recall / (precision + recalll)
+    index = np.argmax(f1)
+    return index, f1[index]    
+
 def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no):
     plt.clf()
     print targets_ts.shape
@@ -40,8 +45,8 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no):
         precision_tr, recall_tr, thresholds = precision_recall_curve(targets_tr[:,i], scores_tr[:,i], pos_label=1)
         area_ts = auc(recall_ts, precision_ts)
         area_tr = auc(recall_tr, precision_tr)
-        print precision_ts[len(precision_ts)-5:]
-        print precision_tr[len(precision_tr)-5:]
+        f1_test = compute_f1(precision_ts, recall_ts)
+        f2_test = compute_f1(precision_tr, recall_tr)
         plt.plot(recall_ts, precision_ts, '--',label="%s test AUC: %0.4f" %(classes[i], area_ts), 
             color=colors[i])
         plt.plot(recall_tr, precision_tr, label="%s train AUC: %0.4f" %(classes[i],area_tr),

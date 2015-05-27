@@ -221,7 +221,7 @@ class FlyPredict(Dataset):
             return
         global pos_frac
         pos_frac = 1.0
-        train_x, train_y = zip(*load_data(train_nos, filter_flag=True))
+        train_x, train_y = zip(*load_data(train_nos, filter_flag=False))
         self.inputs['train'] = np.vstack(train_x)
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
