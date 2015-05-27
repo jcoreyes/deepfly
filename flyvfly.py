@@ -40,7 +40,7 @@ def read_tracking_data(movie_no):
         matpath = "%s/movie%d/movie%d_feat.mat" %(MOVIE_DIR, movie_no, movie_no)
         matfile = scipy.io.loadmat(matpath, struct_as_record=True)
         trk_names, trk_data = matfile['feat'][0,0]
-    return trk_data
+    return trk_data, trk_names
 
 def read_labels(movie_no):
     """ Read action labels from matlab structs"""
@@ -120,7 +120,7 @@ def standard(trk_data):
 def find_means():
     data = []
     for movie_no in train_nos:
-        trk_data = read_tracking_data(movie_no)
+        trk_data, trk_names = read_tracking_data(movie_no)
         trk_data[np.isnan(trk_data)] = 0
         data.append(trk_data)
     train_x = np.hstack(data)

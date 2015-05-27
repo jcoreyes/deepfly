@@ -12,6 +12,9 @@ import cProfile
 import matplotlib.pyplot as plt
 from os.path import expanduser
 import numpy as np
+from sklearn import preprocessing
+
+
 MOVIE_DIR = expanduser("~") + "/flyvflydata/Aggression/Aggression"
 # Feature constants
 WINDOW_LENGTH = 3 # Number of contig. frames to consider for 1 data point
@@ -82,8 +85,9 @@ def transform(trk_data, labels, filter_flag, fly_no=None, window_length=3, strid
     # Set no action
     Y[np.sum(Y, axis=1) == 0, -1] = 1
 
-    if filter_flag:
-        X, Y = filter_data(X, Y)
+    # if filter_flag:
+    #     X, Y = filter_data(X, Y)
+    X, Y = replicationActions(X, Y)
     return X, Y
 
 def filter_data(X, Y):
@@ -105,16 +109,45 @@ def filter_data(X, Y):
     newY[len(idx1):,:] = np.tile(Y[idx2, :], (int(pos_frac), 1))
     return newX, newY
 
+def replicationActions(X, Y):
+    action_ratios = [16, 1, 2300, 190, 38]
+    for i in action_nos:
+        X, Y = replicationAction(X, Y, i, action_ratios[i])
+    return X, Y
+
+def replicationAction(X, Y, action_no, ratio):
+    assert ratio == int(ratio)
+    idx1 = Y[:, action_no] == 1
+    if np.sum(idx1) == 0:
+        return X, Y
+    newX = np.vstack([X, np.tile(X[idx1, :], (ratio, 1))])
+    newY = np.vstack([Y, np.tile(Y[idx1, :], (ratio, 1))])
+    return newX, newY
+    
+def print_ratios(Y):
+    for i in action_nos:
+        num_pos = np.sum(Y[:,i]==1)
+        print ("Action %d percentage %f" %(i, num_pos/float(Y.shape[0])))
+
+    
 def load_data(input_movie_nos, filter_flag=None):
     data = []
     for movie_no in input_movie_nos:
         trk_data = read_tracking_data(movie_no)
         trk_data[np.isnan(trk_data)] = 0
+        standard(trk_data)
         labels = read_labels(movie_no)[1]
         data.append(transform(trk_data, labels, filter_flag, fly_no = 0))
         data.append(transform(trk_data, labels, filter_flag, fly_no = 1))
     return data
 
+def standard(trk_data):
+    means = np.loadtxt("means.txt")
+    for fly_no in range(2):
+        scaler = preprocessing.StandardScaler()
+        scaler.mean_ = means[fly_no]
+        scaler.std_ = means[fly_no + 2]
+        trk_data[fly_no, :, :] = scaler.transform(trk_data[fly_no, :, :])
 
 class Fly(Dataset):
     """
@@ -141,7 +174,8 @@ class Fly(Dataset):
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
         print self.targets['train'].shape
-        validation_x, validation_y = zip(*load_data(validation_nos,filter_flag=False))
+        print_ratios(self.targets['train'])
+        validation_x, validation_y = zip(*load_data(validation_nos,filter_flag=True))
         self.inputs['validation'] = np.vstack(validation_x)
         self.targets['validation'] = np.vstack(validation_y)
         print "Validation size: ", self.inputs['validation'].shape
