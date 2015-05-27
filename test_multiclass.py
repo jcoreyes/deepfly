@@ -45,11 +45,11 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no):
         precision_tr, recall_tr, thresholds = precision_recall_curve(targets_tr[:,i], scores_tr[:,i], pos_label=1)
         area_ts = auc(recall_ts, precision_ts)
         area_tr = auc(recall_tr, precision_tr)
-        f1_test = compute_f1(precision_ts, recall_ts)
-        f2_test = compute_f1(precision_tr, recall_tr)
-        plt.plot(recall_ts, precision_ts, '--',label="%s test AUC: %0.4f" %(classes[i], area_ts), 
+        test_i, f1_ts = compute_f1(precision_ts, recall_ts)
+        train_i, f1_tr = compute_f1(precision_tr, recall_tr)
+        plt.plot(recall_ts, precision_ts, '--',label="%s test AUC: %0.3f f1: %0.3f" %(classes[i], area_ts, f1_ts), 
             color=colors[i])
-        plt.plot(recall_tr, precision_tr, label="%s train AUC: %0.4f" %(classes[i],area_tr),
+        plt.plot(recall_tr, precision_tr, label="%s train AUC: %0.3f f1: %0.3f" %(classes[i],area_tr, f1_tr),
             color=colors[i])
     plt.title('Precision Recall of MC Model ' + model_no)
     plt.xlabel("Recall")

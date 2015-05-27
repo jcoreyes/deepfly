@@ -87,7 +87,8 @@ def transform(trk_data, labels, filter_flag, fly_no=None, window_length=3, strid
 
     # if filter_flag:
     #     X, Y = filter_data(X, Y)
-    X, Y = replicationActions(X, Y)
+    if filter_flag:
+        X, Y = replicationActions(X, Y)
     return X, Y
 
 def filter_data(X, Y):
