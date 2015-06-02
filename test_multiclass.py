@@ -30,7 +30,10 @@ from neon.util.persist import deserialize
 NUM_CLASSES = 6
 
 def compute_f1(precision, recall):
-    f1 = 2*precision*recall / (precision + recalll)
+    print precision.shape
+    print recall.shape
+    f1 = 2*precision*recall / (precision + recall)
+    f1[np.isnan(f1)] = 0
     index = np.argmax(f1)
     return index, f1[index]    
 
@@ -65,6 +68,9 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no):
 def test():
 
     model.print_layers()
+    model.layers[0].set_train_mode(False)
+    model.layers[1].set_train_mode(False)
+    model.layers[2].set_train_mode(False)
     dataset = FlyPredict(backend=be)
 
     # par related init

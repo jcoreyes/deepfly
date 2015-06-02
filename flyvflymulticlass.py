@@ -13,11 +13,11 @@ import matplotlib.pyplot as plt
 from os.path import expanduser
 import numpy as np
 from sklearn import preprocessing
-
+import gc
 
 MOVIE_DIR = expanduser("~") + "/flyvflydata/Aggression/Aggression"
 # Feature constants
-WINDOW_LENGTH = 3 # Number of contig. frames to consider for 1 data point
+WINDOW_LENGTH = 5 # Number of contig. frames to consider for 1 data point
 USE_BOTH = False # Whether to use both fly's data for the same data point
 FEATURE_LENGTH = (USE_BOTH+1) * 36 * WINDOW_LENGTH
 
@@ -52,7 +52,7 @@ def read_labels(movie_no):
     action_names, action_labels = matfile['behs'], matfile['bouts']
     return (action_names, action_labels)
 
-def transform(trk_data, labels, filter_flag, fly_no=None, window_length=3, stride=1):
+def transform(trk_data, labels, filter_flag, fly_no=None, window_length=WINDOW_LENGTH, stride=1):
     """Get sliding window of frames from tracking data"""
 
     num_frames, num_features = trk_data.shape[1:3]
@@ -74,7 +74,7 @@ def transform(trk_data, labels, filter_flag, fly_no=None, window_length=3, strid
     # Action labels format: num_frames x 3: [start_frame, end_frame, 0/1 for if fly switched]
     for index, action_no in enumerate(action_nos):
         action_labels = labels[fly_no, action_no][:, 0:2]
-        for i in xrange(0, len(action_labels)):
+        for i in xrange(0, action_labels.shape[0]):
             start, stop = action_labels[i, :]
             # Use center frame in window as label so frames [0, 1, 2] would use label for
             # frame index 1
@@ -88,45 +88,41 @@ def transform(trk_data, labels, filter_flag, fly_no=None, window_length=3, strid
     # if filter_flag:
     #     X, Y = filter_data(X, Y)
     if filter_flag:
-        X, Y = replicationActions(X, Y)
+        X, Y = replicationActions(X[:-1000, :], Y[:-1000,:])
+        gc.collect()
     return X, Y
 
 def filter_data(X, Y):
     """Filter out percentage of data with no actions"""
-    idx1 = np.where(Y[:,-1] == 1)[0] # No actions
-    idx2 = np.where(Y[:,-1] == 0)[0] # Actions
-    num_neg = int(neg_frac * idx1.shape[0])
-    num_pos = int(pos_frac * idx2.shape[0]) 
-    num_points = num_neg + num_pos
-    print("Filtered out no action from %d to %d" %(len(idx1), num_neg))
-    print("Percent with action is now %f instead of %f" %(num_pos / float(num_points),
-        float(len(idx2)) / (len(idx2) + len(idx1))))
-    idx1 = idx1[0:num_neg]
-    newX = np.zeros((num_points, X.shape[1]))
-    newX[:len(idx1), :] = X[idx1, :]
-    newX[len(idx1):,:] = np.tile(X[idx2, :], (int(pos_frac), 1))
-    newY = np.zeros((num_points, Y.shape[1]))
-    newY[:len(idx1), :] = Y[idx1,:]
-    newY[len(idx1):,:] = np.tile(Y[idx2, :], (int(pos_frac), 1))
-    return newX, newY
+    idx1 = np.where(Y[:, -1] == 1)[0]
+    idx2 = np.where(Y[:, -1] != 1)[0]
+    assert idx1.shape[0] + idx2.shape[0] == X.shape[0]
+    idx1 = idx1[:int(0.6*idx1.shape[0])]    
+    index = np.hstack([idx1, idx2])
+    return X[index, :], Y[index, :]
+    #return np.vstack([X[idx1, :], X[idx2, :]]), np.vstack([Y[idx1, :], Y[idx2, :]])
 
 def replicationActions(X, Y):
-    action_ratios = [16, 1, 2300, 190, 38]
+    action_ratios = [16, 2, 3000, 190, 38]
+    #action_ratios = [8, 1, 1350, 90, 19]
+    #action_ratios = [1, 1, 1, 1, 1]
     for i in action_nos:
-        X, Y = replicationAction(X, Y, i, action_ratios[i])
+        X, Y = replicationAction(X, Y, i, int(1.2*action_ratios[i]))
     return X, Y
 
 def replicationAction(X, Y, action_no, ratio):
     assert ratio == int(ratio)
+    assert X.shape[0] == Y.shape[0]
     idx1 = Y[:, action_no] == 1
     if np.sum(idx1) == 0:
         return X, Y
-    newX = np.vstack([X, np.tile(X[idx1, :], (ratio, 1))])
-    newY = np.vstack([Y, np.tile(Y[idx1, :], (ratio, 1))])
-    return newX, newY
+    #X = np.vstack([X, np.tile(X[idx1, :], (ratio, 1))])
+    #Y = np.vstack([Y, np.tile(Y[idx1, :], (ratio, 1))])
+    return np.vstack([X, np.tile(X[idx1, :], (ratio, 1))]), np.vstack([Y, np.tile(Y[idx1, :], (ratio, 1))])
+
     
 def print_ratios(Y):
-    for i in action_nos:
+    for i in range(6):
         num_pos = np.sum(Y[:,i]==1)
         print ("Action %d percentage %f" %(i, num_pos/float(Y.shape[0])))
 
@@ -181,6 +177,7 @@ class Fly(Dataset):
         self.targets['validation'] = np.vstack(validation_y)
         print "Validation size: ", self.inputs['validation'].shape
         print self.targets['validation'].shape
+        print_ratios(self.targets['validation'])
         #test_x, test_y = zip(*load_data(test_nos))
         #self.inputs['test'] = np.vstack(test_x)
         #self.targets['test'] = np.vstack(test_y)

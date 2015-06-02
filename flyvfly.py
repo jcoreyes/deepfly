@@ -100,7 +100,7 @@ def filter_data(X, Y):
 def load_data(input_movie_nos, filter_flag=None):
     data = []
     for movie_no in input_movie_nos:
-        trk_data = read_tracking_data(movie_no)
+        trk_data = read_tracking_data(movie_no)[0]
         trk_data[np.isnan(trk_data)] = 0
         labels = read_labels(movie_no)[1]
         standard(trk_data)
@@ -197,9 +197,7 @@ class FlyPredict(Dataset):
     def load(self):
         if self.inputs['train'] is not None:
             return
-        global pos_frac
-        pos_frac = 1.0
-        train_x, train_y = zip(*load_data(train_nos, filter_flag=True))
+        train_x, train_y = zip(*load_data(train_nos, filter_flag=False))
         self.inputs['train'] = np.vstack(train_x)
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
