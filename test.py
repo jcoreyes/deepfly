@@ -118,9 +118,10 @@ def visualize():
 
 def find_frame_act():
     # Last layer is cost layer, so second to last is last weight layer
-    #weights = model.layers[-2].weights.asnumpyarray()
-
-    max_weights_index = [77, 90, 66, 46]
+    weights = model.layers[-2].weights.asnumpyarray()
+    print weights.shape
+    print model.layers[-3].weights.asnumpyarray().shape
+    max_weights_index = [77, 90, 66, 46] 
     NUM_W = len(max_weights_index)
     model.data_layer.init_dataset(dataset)
     model.data_layer.use_set('train', predict=True)
@@ -135,7 +136,7 @@ def find_frame_act():
         output = model.get_classifier_output()
         # Prev output shape is num_neurons x batch_size so each row is 1 neuron
 
-        prev = model.layers[-3].pre_act.asnumpyarray()[max_weights_index, :]
+        prev = -model.layers[-3].pre_act.asnumpyarray()[max_weights_index, :]
         curr_max_input = (np.argmax(prev, axis=1) + batch*30, np.amax(prev, axis=1))
         #print curr_max_input[0].shape
         for w in range(NUM_W):
@@ -165,5 +166,6 @@ if __name__ == '__main__':
     be.par.backend = be
 
     dataset = FlyPredict(backend=be)
-    visualize()
+    #visualize()
     #test()
+    find_frame_act()

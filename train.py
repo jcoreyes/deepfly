@@ -14,6 +14,7 @@ try:
     be = GPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
       actual_batch_size=30)
 except ImportError:
+    print "Using CPU"
     be = CPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
       actual_batch_size=30)
 from neon.backends.par import NoPar
@@ -28,9 +29,9 @@ from neon.optimizers import GradientDescentMomentum
 from flyvflymulticlass import Fly
 from neon.util.persist import serialize
 from neon.util.persist import deserialize
-
+from neon.layers.dropout import DropOutLayer
 MINIBATCH_SIZE = 30
-WINDOW_LENGTH = 3
+WINDOW_LENGTH = 5
 USE_BOTH = False
 FEATURE_LENGTH = (USE_BOTH+1) * 36 * WINDOW_LENGTH
 NUM_CLASSES = 6
@@ -46,20 +47,20 @@ def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
     wt_init1 = NodeNormalizedValGen(backend=be, scale=1.0, bias_init=0.1)
     # in original learning_rate was exponentially decaying with 0.03 but with
     # 3x updates/mb
-    gdmwd = {'type': 'gradient_descent_momentum',
-             'lr_params': {'learning_rate': 0.005, 'backend': be,
-                            'weight_decay': 10.0,
+    gdmwd = {'type': 'gradient_descent_momentum_weight_decay',
+             'lr_params': {'learning_rate': 0.001, 'backend': be,
+                            'weight_decay': 0.008,
                            'momentum_params': {'type': 'constant', 'coef': 0.9}}}
-    dataLayer = DataLayer(name='d0', nout=n_in)
+    dataLayer = DataLayer(name='d0', nout=FEATURE_LENGTH)
     layers = []
     layers.append(dataLayer)
     for l in xrange(n_hidden_layers):
         if l < n_hidden_layers - 1:
-            layers.append(FCLayer(name='h' + str(l),
+            layers.append(DropOutLayer(name='h' + str(l),
                                   nout=n_hidden_units[l],
                                   lrule_init=gdmwd,
                                   weight_init=wt_init0,
-                                  activation=Logistic()))
+                                  activation=RectLin(), keep = 0.2))
         else:
             layers.append(FCLayer(name='h' + str(l),
                                   nout=n_hidden_units[l],
@@ -88,7 +89,7 @@ def train():
     if len(sys.argv) > 2:
         model = deserialize(sys.argv[2])
     else:
-        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[80, 50, NUM_CLASSES])
+        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[100, 50, NUM_CLASSES])
         # define model
         model = MLP(num_epochs=1, batch_size=MINIBATCH_SIZE,
                      layers=layers, epochs_complete=0)
