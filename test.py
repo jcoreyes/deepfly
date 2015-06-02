@@ -116,6 +116,41 @@ def visualize():
                 f.write("m%d f%d " %(int(frame/float(points_per_vid))+1, int((frame %points_per_vid)/2.0)))
             f.write("\n")
 
+def find_frame_act():
+    # Last layer is cost layer, so second to last is last weight layer
+    #weights = model.layers[-2].weights.asnumpyarray()
+
+    max_weights_index = [77, 90, 66, 46]
+    NUM_W = len(max_weights_index)
+    model.data_layer.init_dataset(dataset)
+    model.data_layer.use_set('train', predict=True)
+    batch = 0
+    max_input = [[] for x in range(NUM_W)]
+    print "Prec act shape", model.layers[-3].pre_act.asnumpyarray().shape
+    #print model.layers[-3].pre_act.shape
+    for batch_preds, batch_refs in model.predict_generator(dataset,
+                                                          'train'):
+        start = batch * model.batch_size
+        end = start + model.batch_size
+        output = model.get_classifier_output()
+        # Prev output shape is num_neurons x batch_size so each row is 1 neuron
+
+        prev = model.layers[-3].pre_act.asnumpyarray()[max_weights_index, :]
+        curr_max_input = (np.argmax(prev, axis=1) + batch*30, np.amax(prev, axis=1))
+        #print curr_max_input[0].shape
+        for w in range(NUM_W):
+            max_input[w].append((curr_max_input[0][w], curr_max_input[1][w]))
+        batch += 1
+    print batch
+    points_per_vid = 54000*2
+    with open('max_input2.txt', 'w') as f:       
+        for w in range(NUM_W):
+            max_input[w].sort(key=lambda x:x[1], reverse=True)
+            frame_idx = [x[0] for x in max_input[w][0:5]]
+            for frame in frame_idx:
+                f.write("m%d f%d " %(int(frame/float(points_per_vid))+1, int((frame %points_per_vid)/2.0)))
+            f.write("\n")
+
 if __name__ == '__main__':
     with open(sys.argv[1], 'r') as f:
         model = deserialize(f)
