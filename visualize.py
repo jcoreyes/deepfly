@@ -98,6 +98,7 @@ def viz_weights():
     #plt.show()
 
 def find_max_features(w1, w2):
+    trk_names = trk_names[0, index]
     max_w_index = w2.argsort()[0, ::-1]
     min_max_index = range(20) + range(70, 99)
     max_w_index = max_w_index[min_max_index]
@@ -119,7 +120,7 @@ def find_max_features(w1, w2):
 
 
 
-    filter_index_b = np.abs(w1f).mean(axis=0) > np.abs(w1f).mean()
+    filter_index_b = np.abs(w1f).mean(axis=0) > 0.8*np.abs(w1f).mean()
     filter_index = np.arange(0, 108)[filter_index_b]
     plot_matrix(np.transpose(w1f[:, filter_index_b]), "", "", 
         ylabels=[trk_names[filter_index[i]][0] + " %d" % int(filter_index[i]%3+1) for i in range(len(filter_index))], 
@@ -135,6 +136,53 @@ def find_max_features(w1, w2):
     plot_matrix(np.transpose(np.vstack(corr_diff)), "", "", 
         ylabels=ylabels, xlabels=["w%d" %max_w_index[1], "w%d" %max_w_index[2], "diff"])
 
+def find_functions(w1, w2):
+    print w1.shape
+    print w2.shape
+    X = np.zeros((108, 200))
+    vals = np.linspace(-1, 1, 200)
+    #print trk_names.shape
+    #print trk_names
+    f, axs = plt.subplots(6, 6)
+    print axs.shape
+    for param_index in range(36):
+        #plt.subplot(6, 6, param_index)
+        for i in range(3):
+            X = np.zeros((108, 200))
+            X[param_index+i*36, :] = vals
+            result = np.dot(w2, logistic(np.dot(w1, X)))
+            row = param_index / 6
+            col = param_index % 6
+            axs[row, col].plot(vals, result[0, :])
+        #plt.axis([])
+        axs[row, col].set_title(trk_names[0, param_index][0])
+        #plt.legend(["F1", "F2", "F3"])
+    plt.setp(axs, xticklabels=[])
+    plt.show()
+
+def find_function(w1, w2):
+    X = np.zeros((108, 200))
+    vals = np.linspace(-2, 2, 200)
+    param_index = 14
+    X[param_index, :] = vals
+    # vel2 neurons
+    #neurons = [34, 55, 47, 90, 11, 46, 85, 66, 51, 46]
+    # angl vel diff 1 neurons
+    #neurons = [47, 25, ]
+    for n in neurons:
+        w1_s = np.zeros(w1.shape)
+        w1_s[n, :] = w1[n, :]
+        result = logistic(np.dot(w2, logistic(np.dot(w1_s, X))))
+        plt.plot(vals, result[0, :])
+    w1_s = np.zeros(w1.shape)
+    w1_s[neurons, :] = w1[neurons, :]
+    result = logistic(np.dot(w2, logistic(np.dot(w1_s, X))))
+    plt.plot(vals, result[0, :])
+
+    plt.show()
+
+def logistic(x):
+    return 1/(1+np.exp(-x))
 if __name__ == '__main__':
     index = []
     for i in range(36):
@@ -142,7 +190,7 @@ if __name__ == '__main__':
     assert len(index) == 108
     trk_data, trk_names = read_tracking_data(1)
     trk_names = np.hstack([trk_names, trk_names, trk_names])
-    trk_names = trk_names[0, index]
+    
     #print trk_names.shape
 
     # trk_names_lst = [str(trk_names[0,x]) for x in range(trk_names.shape[1])]
@@ -153,4 +201,5 @@ if __name__ == '__main__':
     w2 = np.loadtxt("model23weights2.txt")
     w2 = w2.reshape((1, w2.shape[0]))
 
-    find_max_features(w1, w2)
+    #find_max_features(w1, w2)
+    find_functions(w1, w2)
