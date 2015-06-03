@@ -60,7 +60,7 @@ def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
                                   nout=n_hidden_units[l],
                                   lrule_init=gdmwd,
                                   weight_init=wt_init0,
-                                  activation=RectLin(), keep = 0.2))
+                                  activation=RectLin(), keep = 0.8))
         else:
             layers.append(FCLayer(name='h' + str(l),
                                   nout=n_hidden_units[l],
@@ -89,7 +89,7 @@ def train():
     if len(sys.argv) > 2:
         model = deserialize(sys.argv[2])
     else:
-        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[100, 50, NUM_CLASSES])
+        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[200, 200, NUM_CLASSES])
         # define model
         model = MLP(num_epochs=1, batch_size=MINIBATCH_SIZE,
                      layers=layers, epochs_complete=0)

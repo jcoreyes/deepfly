@@ -68,9 +68,8 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no):
 def test():
 
     model.print_layers()
-    model.layers[0].set_train_mode(False)
-    model.layers[1].set_train_mode(False)
-    model.layers[2].set_train_mode(False)
+    for layer in model.layers:
+        layer.set_train_mode(False)
     dataset = FlyPredict(backend=be)
 
     # par related init
@@ -98,6 +97,9 @@ def test():
 
 def visualize():
     weights = model.layers[-2].weights.asnumpyarray()
+    np.savetxt("mcmodel07weights3.txt", weights)
+    np.savetxt("mcmodel07weights2.txt", model.layers[-3].weights.asnumpyarray())
+    np.savetxt("mcmodel07weights1.txt", model.layers[-4].weights.asnumpyarray())
     plt.subplot(1, 2, 1)
     plt.imshow(np.transpose(np.sort(abs(model.layers[-2].weights.asnumpyarray()))), cmap = cm.Greys_r)
     plt.subplot(1, 2, 2)
@@ -111,5 +113,5 @@ def visualize():
 if __name__ == '__main__':
     with open(sys.argv[1], 'r') as f:
         model = deserialize(f)
-    #visualize()
-    test()
+    visualize()
+    #test()
