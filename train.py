@@ -24,6 +24,7 @@ from neon.params.val_init import NodeNormalizedValGen
 from neon.transforms.rectified import RectLin
 from neon.transforms.linear import Linear
 from neon.transforms.logistic import Logistic
+from neon.transforms.tanh import Tanh
 from neon.transforms.cross_entropy import CrossEntropy
 from neon.optimizers import GradientDescentMomentum
 from flyvflymulticlass import Fly
@@ -49,18 +50,18 @@ def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
     # 3x updates/mb
     gdmwd = {'type': 'gradient_descent_momentum_weight_decay',
              'lr_params': {'learning_rate': 0.001, 'backend': be,
-                            'weight_decay': 0.008,
+                            'weight_decay': 0.015,
                            'momentum_params': {'type': 'constant', 'coef': 0.9}}}
     dataLayer = DataLayer(name='d0', nout=FEATURE_LENGTH)
     layers = []
     layers.append(dataLayer)
     for l in xrange(n_hidden_layers):
         if l < n_hidden_layers - 1:
-            layers.append(DropOutLayer(name='h' + str(l),
+            layers.append(FCLayer(name='h' + str(l),
                                   nout=n_hidden_units[l],
                                   lrule_init=gdmwd,
                                   weight_init=wt_init0,
-                                  activation=RectLin(), keep = 0.8))
+                                  activation=RectLin()))
         else:
             layers.append(FCLayer(name='h' + str(l),
                                   nout=n_hidden_units[l],
@@ -118,7 +119,7 @@ def train():
         #scores, targets = model.predict_fullset(dataset, "validation")
         val_err = get_validation(model, dataset)
         logger.info('epoch: %d,  valid error: %0.6f', i, val_err)
-        if True or val_err < min_err:
+        if val_err < min_err:
             serialize(model, save_file)
             min_err = val_err
 

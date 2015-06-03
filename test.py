@@ -166,6 +166,6 @@ if __name__ == '__main__':
     be.par.backend = be
 
     dataset = FlyPredict(backend=be)
-    visualize()
-    #test()
+    #visualize()
+    test()
     #find_frame_act()

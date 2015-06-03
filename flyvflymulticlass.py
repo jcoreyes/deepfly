@@ -88,7 +88,7 @@ def transform(trk_data, labels, filter_flag, fly_no=None, window_length=WINDOW_L
     # if filter_flag:
     #     X, Y = filter_data(X, Y)
     if filter_flag:
-        X, Y = replicationActions(X[:-1000, :], Y[:-1000,:])
+        X, Y = filter_data(*replicationActions(X[:-1000, :], Y[:-1000,:]))
         gc.collect()
     return X, Y
 

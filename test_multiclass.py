@@ -113,5 +113,6 @@ def visualize():
 if __name__ == '__main__':
     with open(sys.argv[1], 'r') as f:
         model = deserialize(f)
-    visualize()
-    #test()
+    model.print_layers()
+    #visualize()
+    test()
