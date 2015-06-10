@@ -22,8 +22,8 @@ USE_BOTH = False # Whether to use both fly's data for the same data point
 FEATURE_LENGTH = (USE_BOTH+1) * 36 * WINDOW_LENGTH
 
 movie_nos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-train_nos = range(1, 6) # Zero indexed
-validation_nos = [6]
+train_nos = [1, 2] #range(1, 6)
+validation_nos = [3]
 test_nos = range(6,11)
 action_nos = [0, 1, 2, 3, 4]
 use_trk = False
@@ -68,7 +68,7 @@ def transform(trk_data, labels, filter_flag, fly_no=None, window_length=WINDOW_L
             X[i, :] = np.reshape(window, (1, window.size))
     half_window = int(WINDOW_LENGTH / 2.0)
     # Last col of Y is for no action
-    Y = np.zeros((X.shape[0], len(action_nos)))
+    Y = np.zeros((X.shape[0], len(action_nos) + 1))
     # Action labels format: num_frames x 3: [start_frame, end_frame, 0/1 for if fly switched]
     for index, action_no in enumerate(action_nos):
         action_labels = labels[fly_no, action_no][:, 0:2]
@@ -81,35 +81,39 @@ def transform(trk_data, labels, filter_flag, fly_no=None, window_length=WINDOW_L
                 stop -= half_window
             Y[start:stop, index] = 1
     # Set no action
-    #Y[np.sum(Y, axis=1) == 0, -1] = 1
+    Y[np.sum(Y, axis=1) == 0, -1] = 1
 
     if filter_flag:
-        #X, Y = filter_data(X, Y)#filter_data(*replicationActions(X, Y))
+        X, Y = filter_data(*replicationActions(X, Y))
         gc.collect()
 
-    newY = np.zeros((X.shape[0], 1))
-    newY[np.sum(Y, axis=1) != 0, 0] = 1 
-    return replicationAction(X, newY, 0, 15)
+    return X, Y
 
 def filter_data(X, Y):
     """Filter out percentage of data with no actions"""
-    idx1 = np.where(np.sum(Y, axis=1) == 0)[0]
-    idx2 = np.where(np.sum(Y, axis=1) != 0)[0]
+    idx1 = np.where(Y[:, -1] == 1)[0] #np.where(np.sum(Y, axis=1) == 0)[0]
+    idx2 = np.where(Y[:, -1] == 0)[0] #np.where(np.sum(Y, axis=1) != 0)[0]
     assert idx1.shape[0] + idx2.shape[0] == X.shape[0]
-    idx1 = idx1[:int(1*idx1.shape[0])]    
+    #print idx1.shape
+    idx1 = idx1[:int(0.6*idx1.shape[0])]    
+    #print idx1.shape
     index = np.hstack([idx1, idx2])
-    return X[idx2, :], Y[idx2, :]
+    X = X[index, :]
+    Y = Y[index, :]
+    return X, Y
     #return np.vstack([X[idx1, :], X[idx2, :]]), np.vstack([Y[idx1, :], Y[idx2, :]])
 
 def replicationActions(X, Y):
+    """ Replication each action according to ratios"""
     #action_ratios = [16, 2, 3000, 190, 38]
-    #action_ratios = [8, 1, 1350, 90, 19]
-    action_ratios = [1, 1, 1, 1, 1]
+    action_ratios = [8, 1, 1350, 90, 19]
+    #action_ratios = [1, 1, 1, 1, 1]
     for i in action_nos:
         X, Y = replicationAction(X, Y, i, action_ratios[i])
     return X, Y
 
 def replicationAction(X, Y, action_no, ratio):
+    """ Replicate a single action"""
     assert ratio == int(ratio)
     assert X.shape[0] == Y.shape[0]
     idx1 = Y[:, action_no] == 1
@@ -121,7 +125,7 @@ def replicationAction(X, Y, action_no, ratio):
 
     
 def print_ratios(Y):
-    for i in range(1):
+    for i in range(Y.shape[1]):
         num_pos = np.sum(Y[:,i]==1)
         print ("Action %d percentage %f" %(i, num_pos/float(Y.shape[0])))
 
@@ -138,6 +142,7 @@ def load_data(input_movie_nos, filter_flag=None):
     return data
 
 def standard(trk_data):
+    """ Standardize the data to have zero mean and unit variance"""
     means = np.loadtxt("means.txt")
     for fly_no in range(2):
         scaler = preprocessing.StandardScaler()
@@ -217,17 +222,18 @@ class FlyPredict(Dataset):
         if self.inputs['train'] is not None:
             return
 
-        train_x, train_y = zip(*load_data(train_nos, filter_flag=True))
+        train_x, train_y = zip(*load_data(train_nos, filter_flag=False))
         self.inputs['train'] = np.vstack(train_x)
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
         print_ratios(self.targets['train'])
 
-        test_x, test_y = zip(*load_data(test_nos, filter_flag=True))
+
+        test_x, test_y = zip(*load_data(test_nos, filter_flag=False))
         self.inputs['test'] = np.vstack(test_x)
         self.targets['test'] = np.vstack(test_y)
         print "Test Size: ", self.inputs['test'].shape
-        print_ratios(self.targets['validation'])
+        print_ratios(self.targets['test'])
 
         self.format()
 
