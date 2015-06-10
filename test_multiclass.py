@@ -27,7 +27,7 @@ from neon.models.mlp import MLP
 from flyvflymulticlass import FlyPredict
 from neon.util.persist import deserialize
 
-NUM_CLASSES = 6
+NUM_CLASSES = 5
 
 def compute_f1(precision, recall):
     print precision.shape
