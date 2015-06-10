@@ -17,6 +17,8 @@ except ImportError:
     print "Using CPU"
     be = CPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
       actual_batch_size=30)
+#be = CPU(rng_seed=0, seterr_handling={'all': 'warn'},datapar=False, modelpar=False,
+#      actual_batch_size=30)
 from neon.backends.par import NoPar
 from neon.layers import FCLayer, DataLayer, CostLayer
 from neon.models.mlp import MLP
@@ -31,11 +33,11 @@ from flyvflymulticlass import Fly
 from neon.util.persist import serialize
 from neon.util.persist import deserialize
 from neon.layers.dropout import DropOutLayer
-MINIBATCH_SIZE = 30
-WINDOW_LENGTH = 5
-USE_BOTH = False
+MINIBATCH_SIZE = 30 # Number of input data points model will learn on at a time
+WINDOW_LENGTH = 5 # Number of frames for a single data point
+USE_BOTH = False # Whether to use both flys data for a single data point
 FEATURE_LENGTH = (USE_BOTH+1) * 36 * WINDOW_LENGTH
-NUM_CLASSES = 6
+NUM_CLASSES = 6 # Number of classes
 
 def get_parameters(n_in=None, n_hidden_units = 100,  n_hidden_layers=None):
     print 'initializing layers'
@@ -90,7 +92,7 @@ def train():
     if len(sys.argv) > 2:
         model = deserialize(sys.argv[2])
     else:
-        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[200, 200, NUM_CLASSES])
+        layers = get_parameters(n_in=FEATURE_LENGTH, n_hidden_units=[100, 50, NUM_CLASSES])
         # define model
         model = MLP(num_epochs=1, batch_size=MINIBATCH_SIZE,
                      layers=layers, epochs_complete=0)

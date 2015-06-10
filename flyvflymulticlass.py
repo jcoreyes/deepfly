@@ -25,8 +25,6 @@ movie_nos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 train_nos = range(1, 6) # Zero indexed
 validation_nos = [6]
 test_nos = range(6,11)
-neg_frac = 0.6
-pos_frac = 20.0
 action_nos = [0, 1, 2, 3, 4]
 use_trk = False
 logger = logging.getLogger(__name__)
@@ -85,32 +83,38 @@ def transform(trk_data, labels, filter_flag, fly_no=None, window_length=WINDOW_L
     # Set no action
     Y[np.sum(Y, axis=1) == 0, -1] = 1
 
-    # if filter_flag:
-    #     X, Y = filter_data(X, Y)
     if filter_flag:
-        X, Y = filter_data(*replicationActions(X[:-1000, :], Y[:-1000,:]))
+        #X, Y = filter_data(X, Y)
+        X, Y = filter_data(*replicationActions(X, Y))
         gc.collect()
+
     return X, Y
 
 def filter_data(X, Y):
     """Filter out percentage of data with no actions"""
-    idx1 = np.where(Y[:, -1] == 1)[0]
-    idx2 = np.where(Y[:, -1] != 1)[0]
+    idx1 = np.where(Y[:, -1] == 1)[0] #np.where(np.sum(Y, axis=1) == 0)[0]
+    idx2 = np.where(Y[:, -1] == 0)[0] #np.where(np.sum(Y, axis=1) != 0)[0]
     assert idx1.shape[0] + idx2.shape[0] == X.shape[0]
+    #print idx1.shape
     idx1 = idx1[:int(0.6*idx1.shape[0])]    
+    #print idx1.shape
     index = np.hstack([idx1, idx2])
-    return X[index, :], Y[index, :]
+    X = X[index, :]
+    Y = Y[index, :]
+    return X, Y
     #return np.vstack([X[idx1, :], X[idx2, :]]), np.vstack([Y[idx1, :], Y[idx2, :]])
 
 def replicationActions(X, Y):
-    action_ratios = [16, 2, 3000, 190, 38]
-    #action_ratios = [8, 1, 1350, 90, 19]
+    """ Replication each action according to ratios"""
+    #action_ratios = [16, 2, 3000, 190, 38]
+    action_ratios = [8, 1, 1350, 90, 19]
     #action_ratios = [1, 1, 1, 1, 1]
     for i in action_nos:
-        X, Y = replicationAction(X, Y, i, int(1.2*action_ratios[i]))
+        X, Y = replicationAction(X, Y, i, action_ratios[i])
     return X, Y
 
 def replicationAction(X, Y, action_no, ratio):
+    """ Replicate a single action"""
     assert ratio == int(ratio)
     assert X.shape[0] == Y.shape[0]
     idx1 = Y[:, action_no] == 1
@@ -122,7 +126,7 @@ def replicationAction(X, Y, action_no, ratio):
 
     
 def print_ratios(Y):
-    for i in range(6):
+    for i in range(5):
         num_pos = np.sum(Y[:,i]==1)
         print ("Action %d percentage %f" %(i, num_pos/float(Y.shape[0])))
 
@@ -139,6 +143,7 @@ def load_data(input_movie_nos, filter_flag=None):
     return data
 
 def standard(trk_data):
+    """ Standardize the data to have zero mean and unit variance"""
     means = np.loadtxt("means.txt")
     for fly_no in range(2):
         scaler = preprocessing.StandardScaler()
@@ -166,13 +171,13 @@ class Fly(Dataset):
     def load(self):
         if self.inputs['train'] is not None:
             return
-        train_x, train_y = zip(*load_data(train_nos,filter_flag=True))
+        train_x, train_y = zip(*load_data(train_nos,filter_flag=False))
         self.inputs['train'] = np.vstack(train_x)
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
         print self.targets['train'].shape
         print_ratios(self.targets['train'])
-        validation_x, validation_y = zip(*load_data(validation_nos,filter_flag=True))
+        validation_x, validation_y = zip(*load_data(validation_nos,filter_flag=False))
         self.inputs['validation'] = np.vstack(validation_x)
         self.targets['validation'] = np.vstack(validation_y)
         print "Validation size: ", self.inputs['validation'].shape
@@ -217,17 +222,19 @@ class FlyPredict(Dataset):
     def load(self):
         if self.inputs['train'] is not None:
             return
-        global pos_frac
-        pos_frac = 1.0
+
         train_x, train_y = zip(*load_data(train_nos, filter_flag=False))
         self.inputs['train'] = np.vstack(train_x)
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
-        
+        print_ratios(self.targets['train'])
+
         test_x, test_y = zip(*load_data(test_nos, filter_flag=False))
         self.inputs['test'] = np.vstack(test_x)
         self.targets['test'] = np.vstack(test_y)
         print "Test Size: ", self.inputs['test'].shape
+        print_ratios(self.targets['test'])
+
         self.format()
 
     def get_mini_batch(self, batch_idx):
