@@ -42,19 +42,16 @@ def prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no):
     colors = ['r', 'g', 'b', 'y', 'k', 'm']
     classes = ['lunge', 'wing_threat', 'charge', 'hold', 'tussle', 'other']
     for i in range(NUM_CLASSES):
-        i = 5
         precision_ts, recall_ts, thresholds_ts = precision_recall_curve(targets_ts[:,i], scores_ts[:,i], pos_label=1)
         precision_tr, recall_tr, thresholds = precision_recall_curve(targets_tr[:,i], scores_tr[:,i], pos_label=1)
         area_ts = auc(recall_ts, precision_ts)
         area_tr = auc(recall_tr, precision_tr)
         test_i, f1_ts = compute_f1(precision_ts, recall_ts)
         train_i, f1_tr = compute_f1(precision_tr, recall_tr)
-        print thresholds_ts[train_i]
         plt.plot(recall_ts, precision_ts, '--',label="%s test AUC: %0.3f f1: %0.3f" %(classes[i], area_ts, f1_ts), 
             color=colors[i])
         plt.plot(recall_tr, precision_tr, label="%s train AUC: %0.3f f1: %0.3f" %(classes[i],area_tr, f1_tr),
             color=colors[i])
-        break
     plt.title('Precision Recall of MC Model ' + model_no)
     plt.xlabel("Recall")
     plt.ylabel("Precision")
@@ -148,8 +145,8 @@ def test():
     scores_ts = np.transpose(scores.asnumpyarray())
     targets_ts = np.transpose(targets.asnumpyarray())
     model_no = sys.argv[1].split(".")[0][-2:]
-    find_no_class(targets_ts[:, 5], scores_ts[:, 5], targets_tr[:, 5], scores_tr[:, 5], model_no)
-    #prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no)
+    #find_no_class(targets_ts[:, 5], scores_ts[:, 5], targets_tr[:, 5], scores_tr[:, 5], model_no)
+    prc_curve(targets_ts, scores_ts, targets_tr, scores_tr, model_no)
 
 def visualize():
     weights = model.layers[-2].weights.asnumpyarray()
@@ -170,5 +167,5 @@ if __name__ == '__main__':
     with open(sys.argv[1], 'r') as f:
         model = deserialize(f)
     model.print_layers()
-    visualize()
-    #test()
+    #visualize()
+    test()

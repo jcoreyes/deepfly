@@ -22,8 +22,8 @@ USE_BOTH = False # Whether to use both fly's data for the same data point
 FEATURE_LENGTH = (USE_BOTH+1) * 36 * WINDOW_LENGTH
 
 movie_nos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-train_nos = range(1, 6) # Zero indexed
-validation_nos = [6]
+train_nos = [1, 2] #range(1, 6)
+validation_nos = [3]
 test_nos = range(6,11)
 action_nos = [0, 1, 2, 3, 4]
 use_trk = False
@@ -126,7 +126,7 @@ def replicationAction(X, Y, action_no, ratio):
 
     
 def print_ratios(Y):
-    for i in range(5):
+    for i in range(Y.shape[1]):
         num_pos = np.sum(Y[:,i]==1)
         print ("Action %d percentage %f" %(i, num_pos/float(Y.shape[0])))
 
@@ -171,13 +171,13 @@ class Fly(Dataset):
     def load(self):
         if self.inputs['train'] is not None:
             return
-        train_x, train_y = zip(*load_data(train_nos,filter_flag=False))
+        train_x, train_y = zip(*load_data(train_nos,filter_flag=True))
         self.inputs['train'] = np.vstack(train_x)
         self.targets['train'] = np.vstack(train_y)
         print "Training size: ", self.inputs['train'].shape
         print self.targets['train'].shape
         print_ratios(self.targets['train'])
-        validation_x, validation_y = zip(*load_data(validation_nos,filter_flag=False))
+        validation_x, validation_y = zip(*load_data(validation_nos,filter_flag=True))
         self.inputs['validation'] = np.vstack(validation_x)
         self.targets['validation'] = np.vstack(validation_y)
         print "Validation size: ", self.inputs['validation'].shape
